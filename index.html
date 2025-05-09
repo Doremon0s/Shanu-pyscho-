@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/> 
+  <title>Shanu psycho</title> 
+  <style>
+    body {
+      margin: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;
+      padding-bottom: 60px; 
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+    /* --- Common Styles --- */
+    .main-section { 
+      display: none; animation: fadeIn 0.5s; padding: 10px; 
+      box-sizing: border-box; /* Ensure padding doesn't increase width */
+      width: 100%;
+    }
+    .main-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .form-container, .product-detail-container, .shopify-product-manager-container { 
+      background: #fff; padding: 20px; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+      max-width: 100%; /* Let it take full width on mobile */
+      margin: 10px auto;
+      box-sizing: border-box;
+    }
+     @media (min-width: 600px) { /* Apply max-width only on larger screens */
+        .form-container, .product-detail-container, .shopify-product-manager-container {
+            max-width: 500px; /* Or your preferred max-width */
+        }
+    }
+
+    .form-container h2, .form-container h3 { text-align: center; color: #333; margin-top: 0; margin-bottom: 20px; }
+    .form-container label, .shopify-product-manager-container label { 
+      font-weight: bold; margin-top: 15px; display: block; color: #555; margin-bottom: 5px; 
+    }
+    .form-container input[type="text"],
+    .form-container input[type="email"],
+    .form-container input[type="tel"],
+    .form-container input[type="number"],
+    .form-container textarea,
+    .form-container select,
+    .shopify-product-manager-container input, 
+    .shopify-product-manager-container select, 
+    .shopify-product-manager-container textarea {
+      width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px;
+      border: 1px solid #ccc; font-size: 16px; box-sizing: border-box;
+    }
+    .form-container button.action-btn, 
+    .shopify-product-manager-container .actions button,
+    .product-detail-container button.action-btn {
+      width: 100%; padding: 12px; margin-top: 20px; border-radius: 5px;
+      border: none; font-size: 16px; font-weight: bold; cursor: pointer;
+      color: white; background-color: #f54d5f;
+    }
+    .form-container button.action-btn:hover, 
+    .shopify-product-manager-container .actions button:hover,
+    .product-detail-container button.action-btn:hover { background-color: #d13c4e; }
+    .error-message { color: red; font-size: 14px; margin-top: 5px; }
+    .button-group { display: flex; gap: 10px; margin-top: 15px; }
+    .button-group button { flex: 1; }
+
+
+    /* --- Bazaar Home Page Styles --- */
+    header.bazaar-header { 
+      background-color: #f54d5f; padding: 15px; color: white; text-align: center; 
+      font-size: 24px; font-weight: bold; position: sticky; top: 0; z-index: 1000;
+    }
+    .bazaar-search-bar { 
+      padding: 10px; background-color: #f54d5f; position: sticky; top: 54px; z-index: 999;
+      display: flex; /* For search button */
+      gap: 8px;
+    }
+    .bazaar-search-bar input { 
+      flex-grow: 1; /* Input takes available space */
+      padding: 10px; border: none; border-radius: 8px; font-size: 16px; box-sizing: border-box;
+    }
+    .bazaar-search-bar button {
+        padding: 10px 15px; border: none; border-radius: 8px; background-color: #fff;
+        color: #f54d5f; font-weight: bold; cursor: pointer;
+    }
+
+    .bazaar-categories { 
+      display: flex; overflow-x: auto; background-color: #fff; padding: 10px; gap: 10px; 
+      border-bottom: 1px solid #eee; position: sticky; top: 108px; z-index: 998;
+    }
+    .bazaar-categories::-webkit-scrollbar { height: 5px; }
+    .bazaar-categories::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+    .bazaar-categories button { 
+      padding: 8px 16px; border: none; background-color: #f4f4f4; border-radius: 20px; 
+      font-weight: bold; white-space: nowrap; cursor: pointer; font-size: 14px;
+    }
+    .bazaar-categories button.active { background-color: #f54d5f; color: white; }
+    .bazaar-banner { margin: 10px 0; border-radius: 8px; overflow: hidden; } /* Adjusted margin */
+    .bazaar-banner img { width: 100%; border-radius: 8px; display: block; }
+    .bazaar-section-title { 
+        padding: 10px 0px; font-size: 18px; font-weight: bold; color: #333; 
+        /* background-color: #fff; */ margin-top: 5px;
+        /* border-bottom: 1px solid #eee; */
+    }
+    .bazaar-products { 
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjusted minmax */
+      gap: 10px;
+    }
+    .bazaar-product-card { 
+      background-color: #fff; border-radius: 8px; overflow: hidden; padding: 10px; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; 
+      justify-content: space-between; cursor: pointer; 
+    }
+    .bazaar-product-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .bazaar-product-card img { 
+      width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;
+    }
+    /* ... other .bazaar-product-card sub-element styles remain same ... */
+    .bazaar-product-card .title { font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #333; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.2em;}
+    .bazaar-product-card .size-info { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .bazaar-product-card .price-container { display: flex; align-items: baseline; gap: 5px; margin-bottom: 6px; }
+    .bazaar-product-card .price { color: #000; font-weight: bold; font-size: 15px; }
+    .bazaar-product-card .original-price { color: #999; text-decoration: line-through; font-size: 12px; }
+    .bazaar-product-card .discount-tag { color: #388e3c; font-weight: bold; font-size: 12px; }
+    .bazaar-product-card .action-button { background-color: #f54d5f; border: none; color: white; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: auto;}
+
+
+    /* --- Product Detail Page Styles --- */
+    .product-detail-container img.main-image {
+        width: 100%; max-height: 350px; object-fit: contain; /* Changed to contain for better fit */
+        border-radius: 6px; margin-bottom: 15px; border: 1px solid #eee;
+    }
+    /* ... other .product-detail-container styles ... */
+    .product-detail-container .title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
+    .product-detail-container .price-section { margin-bottom: 15px; }
+    .product-detail-container .current-price { font-size: 18px; font-weight: bold; color: #f54d5f; margin-right: 10px;}
+    .product-detail-container .original-price { font-size: 15px; color: #888; text-decoration: line-through; }
+    .product-detail-container .description { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 20px; }
+    .product-detail-container .size-info { font-size: 14px; color: #444; margin-bottom: 15px;}
+
+
+    /* Shopify Add Product Form Styles */
+     .shopify-product-manager-container textarea { min-height: 80px; resize: vertical; }
+     .shopify-product-manager-container .image-preview {
+      margin-top: 10px; max-width: 100%; max-height: 200px; 
+      border-radius: 5px; border: 1px dashed #ccc;
+      object-fit: contain; /* Important for image preview scaling */
+      display: none;
+    }
+    /* ... other .shopify-product-manager-container styles ... */
+    .shopify-product-manager-container .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
+    .shopify-product-manager-container .actions button { width: 100%; padding: 12px; margin-top: 0; border-radius: 5px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: white; }
+    .shopify-product-manager-container button.save-btn { background-color: #008060; }
+    .shopify-product-manager-container button.save-btn:hover { background-color: #005a41; }
+    .shopify-product-manager-container button.clear-btn { background-color: #d93025; }
+    .shopify-product-manager-container button.clear-btn:hover { background-color: #a52714; }
+    #shopifyProductOutput { margin-top: 20px; text-align: center; font-weight: bold; }
+
+
+    /* Bag & Orders Section Styles */
+    /* ... existing bag and order styles are generally okay for mobile ... */
+    .empty-bag-message { text-align:center; color:#777; padding: 20px 0;}
+    .order-list-item { background-color: #fff; border-radius: 6px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    /* ... other order item styles ... */
+    .order-list-item .order-id { font-weight: bold; font-size: 15px; color: #f54d5f; margin-bottom: 8px;}
+    .order-list-item .order-date { font-size: 11px; color: #777; margin-bottom: 10px;}
+    .order-list-item .order-product { display: flex; align-items: center; margin-bottom: 8px;}
+    .order-list-item .order-product img { width: 45px; height: 45px; object-fit: cover; border-radius: 4px; margin-right: 10px;}
+    .order-list-item .order-product .name { font-size: 13px; flex-grow: 1;}
+    .order-list-item .order-product .qty-price { font-size: 12px; color: #555; text-align: right;}
+    .order-list-item .order-total { font-weight: bold; text-align: right; margin-top: 10px; font-size: 14px;}
+    .order-list-item .order-status { font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 12px; color: white; display: inline-block; margin-top: 10px; }
+    .order-status.processed { background-color: #007bff; } 
+    .order-status.shipped { background-color: #ffc107; color: #333 !important; } 
+    .order-status.delivered { background-color: #28a745; } 
+
+
+    /* Bottom Navigation Styles */
+    .bottom-nav { 
+      display: flex; justify-content: space-around; background-color: #fff;
+      position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 0; 
+      border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1001;
+    }
+    /* ... other bottom-nav styles ... */
+    .bottom-nav div { text-align: center; color: #555; cursor: pointer; flex: 1; padding: 2px 0; }
+    .bottom-nav div.active-nav { color: #f54d5f; }
+    .bottom-nav div img { width: 22px; height: 22px; margin-bottom: 2px; }
+    .bottom-nav div span { display: block; font-size: 11px; font-weight: 500; }
+
+  </style>
+</head>
+<body>
+
+  <header class="bazaar-header" id="bazaarHeader">bazaar</header>
+  <div class="bazaar-search-bar" id="bazaarSearchBarEl"> {/* Corrected ID used in JS */}
+    <input type="text" id="searchInput" placeholder="Search Products..." />
+    <button onclick="performSearch()">Search</button>
+  </div>
+  <div class="bazaar-categories" id="bazaarCategoriesEl">
+    <button class="active" onclick="filterBazaarCategory('All', this)">All</button>
+    <button onclick="filterBazaarCategory('#Deals', this)">#Deals</button>
+    <button onclick="filterBazaarCategory('Women', this)">Women</button>
+  </div>
+
+  <!-- SECTION: Home Page -->
+  <div class="main-section active" id="homeSection">
+    <div class="bazaar-banner"><img src="https://via.placeholder.com/800x250?text=Mega+Offers" alt="Banner" /></div>
+    <div class="bazaar-section-title">Fresh Recommendations</div>
+    <div class="bazaar-products" id="bazaarProductList"></div>
+  </div>
+
+  <!-- SECTION: Search Results Page -->
+  <div class="main-section" id="searchResultSection">
+    <h2 id="searchResultTitle" style="text-align:left; font-size:18px; margin-bottom:15px;">Search Results</h2>
+    <div class="bazaar-products" id="searchResultProductList">
+        <!-- Search results will appear here -->
+    </div>
+    <p id="noSearchResults" style="text-align:center; color:#777; display:none;">No products found matching your search.</p>
+  </div>
+
+
+  <!-- SECTION: Product Detail Page -->
+  <div class="main-section" id="productDetailSection">
+    <div class="product-detail-container" id="productDetailContent"></div>
+  </div>
+
+  <!-- SECTION: Address Form for Order -->
+  <div class="main-section" id="addressFormSection">
+    <div class="form-container">
+        <h2>Delivery Address</h2>
+        <form id="deliveryAddressForm">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" required placeholder="Enter full name">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" required placeholder="10-digit mobile number">
+            <label for="pincode">Pincode</label>
+            <input type="text" id="pincode" required placeholder="6-digit Pincode">
+            <label for="houseNo">Flat, House no., Building</label>
+            <input type="text" id="houseNo" required placeholder="House number, etc.">
+            <label for="areaStreet">Area, Street, Sector</label>
+            <input type="text" id="areaStreet" required placeholder="Area or Street">
+            <label for="city">Town/City</label>
+            <input type="text" id="city" required placeholder="Your City">
+            <label for="state">State</label>
+            <input type="text" id="state" required placeholder="Your State">
+            <button type="submit" class="action-btn">Proceed to Payment</button>
+        </form>
+    </div>
+  </div>
+
+  <!-- SECTION: Payment Method Page -->
+  <div class="main-section" id="paymentMethodSection">
+    <div class="form-container">
+        <h2>Choose Payment Method</h2>
+        <button class="action-btn" onclick="selectPaymentMethod('UPI')" style="background-color: #6c757d; margin-bottom:10px;">UPI</button>
+        <button class="action-btn" onclick="selectPaymentMethod('COD')" style="background-color: #6c757d; margin-bottom:10px;">Cash on Delivery</button>
+        <button class="action-btn" onclick="selectPaymentMethod('Card')" style="background-color: #6c757d;">Credit/Debit Card</button>
+    </div>
+  </div>
+
+  <!-- SECTION: Add Product (Admin) -->
+  <div class="main-section" id="addProductSectionShopify">
+    <div class="shopify-product-manager-container">
+      <h2>Add New Product</h2>
+      <label for="shopifyTitle">Product Title</label>
+      <input type="text" id="shopifyTitle" placeholder="e.g. Summer T-Shirt" />
+      <label for="shopifyDescription">Description</label>
+      <textarea id="shopifyDescription" rows="3" placeholder="Short description..."></textarea>
+      <label for="shopifyImageUpload">Upload Image</label>
+      <input type="file" id="shopifyImageUpload" accept="image/*" />
+      <img id="shopifyPreview" class="image-preview" src="#" alt="Product Preview" style="display:none;" />
+      <label for="shopifyPrice">Price (₹)</label>
+      <input type="number" id="shopifyPrice" placeholder="e.g. 499" />
+      <label for="shopifyComparePrice">Compare at Price (₹) (Opt.)</label>
+      <input type="number" id="shopifyComparePrice" placeholder="e.g. 999" />
+      <label for="shopifySize">Size (Optional)</label>
+      <input type="text" id="shopifySize" placeholder="e.g., M, L, XL, Free Size, 250g" />
+      <label for="shopifyInventory">Inventory</label>
+      <input type="number" id="shopifyInventory" placeholder="e.g. 100" />
+      <label for="shopifyStatus">Status</label>
+      <select id="shopifyStatus"><option value="active">Active</option><option value="draft">Draft</option></select>
+      <div class="actions">
+        <button class="save-btn" onclick="saveShopifyProduct()">Save Product</button>
+        <button class="clear-btn" onclick="clearShopifyForm()">Clear Form</button>
+      </div>
+      <div id="shopifyProductOutput"></div>
+    </div>
+  </div>
+
+  <!-- SECTION: Orders (User's Placed Orders) -->
+  <div class="main-section" id="ordersSection">
+    <div class="shopify-product-manager-container">
+        <h2>Your Orders</h2>
+        <div id="orderListContainer">
+            <p class="empty-bag-message" style="padding:20px 0;">You have no orders yet.</p>
+        </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Shopping Bag -->
+  <div class="main-section" id="bagSection">
+    <div class="shopify-product-manager-container">
+        <h2>Your Shopping Bag</h2>
+        <div id="bagItemsContainer"><p class="empty-bag-message">Your bag is empty.</p></div>
+        <div class="bag-summary" id="bagSummaryContainer" style="display:none;">
+            <p>Subtotal: <span id="bagSubtotal">₹0</span></p>
+            <p class="total">Total: <span id="bagTotal">₹0</span></p>
+            <button class="action-btn" onclick="proceedToAddress()" style="margin-top:15px;">Proceed to Buy</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Account -->
+  <div class="main-section" id="accountSection">
+     <div class="shopify-product-manager-container">
+        <h2>My Account</h2>
+        <p style="text-align:center; color:#777;">Account features coming soon!</p>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav">
+    <div class="active-nav" id="nav-home" onclick="showSection('homeSection')"><img src="https://img.icons8.com/material-rounded/24/home.png" alt="Home"/><span>Home</span></div>
+    <div id="nav-add" onclick="showSection('addProductSectionShopify')"><img src="https://img.icons8.com/material-rounded/24/add-circle-outline.png" alt="Add"/><span>Add Product</span></div>
+    <div id="nav-orders" onclick="showSection('ordersSection')"><img src="https://img.icons8.com/material-outlined/24/000000/purchase-order.png" alt="Orders"/><span>Orders</span></div>
+    <div id="nav-bag" onclick="showSection('bagSection')"><img src="https://img.icons8.com/material-rounded/24/shopping-bag.png" alt="Bag"/><span>Bag</span></div>
+    <div id="nav-account" onclick="showSection('accountSection')"><img src="https://img.icons8.com/material-rounded/24/user.png" alt="Account"/><span>Account</span></div>
+  </div>
+
+<script>
+    // --- Data ---
+    const bazaarSampleProducts = [
+      { id: "p1", title: "Stylish Kurti", price: 499, originalPrice: 999, description: "Elegant printed kurti, perfect for casual occasions. Made with comfortable fabric.", image: "https://via.placeholder.com/400x400/FFC0CB/000000?Text=Kurti", category: "Women", size: "M"},
+      { id: "p2", title: "Men's Check Shirt", price: 650, originalPrice: 1200, description: "Comfortable 100% cotton check shirt for men. Ideal for daily wear.", image: "https://via.placeholder.com/400x400/ADD8E6/000000?Text=Shirt", category: "Men", size: "L"},
+      { id: "p3", title: "Wireless Earbuds Pro", price: 1499, originalPrice: 2999, description: "True wireless earbuds with active noise cancellation, long battery life.", image: "https://via.placeholder.com/400x400/90EE90/000000?Text=Earbuds", category: "#Deals"},
+    ];
+    let allBazaarProducts = [...bazaarSampleProducts]; 
+    let shoppingBag = []; 
+    let userOrders = []; 
+    let currentOrderDetails = {}; 
+
+    // --- DOM Elements ---
+    const allMainSections = document.querySelectorAll('.main-section');
+    const bottomNavItems = document.querySelectorAll('.bottom-nav div');
+    const bazaarHeader = document.getElementById('bazaarHeader');
+    const bazaarSearchBarEl = document.getElementById('bazaarSearchBarEl'); // Corrected variable name
+    const bazaarCategoriesEl = document.getElementById('bazaarCategoriesEl'); 
+    const productDetailContentEl = document.getElementById('productDetailContent');
+    const deliveryAddressFormEl = document.getElementById('deliveryAddressForm');
+    const bagItemsContainer = document.getElementById('bagItemsContainer');
+    const bagSummaryContainer = document.getElementById('bagSummaryContainer');
+    const bagSubtotalEl = document.getElementById('bagSubtotal');
+    const bagTotalEl = document.getElementById('bagTotal');
+    const orderListContainer = document.getElementById('orderListContainer');
+    const shopifyImageUpload = document.getElementById('shopifyImageUpload');
+    const shopifyPreview = document.getElementById('shopifyPreview');
+    const shopifyProductOutput = document.getElementById('shopifyProductOutput');
+    const searchInputEl = document.getElementById('searchInput');
+    const searchResultProductListEl = document.getElementById('searchResultProductList');
+    const searchResultTitleEl = document.getElementById('searchResultTitle');
+    const noSearchResultsEl = document.getElementById('noSearchResults');
+
+
+    // --- Navigation ---
+    function showSection(sectionIdToShow, param = null) {
+      allMainSections.forEach(section => section.classList.remove('active'));
+      bottomNavItems.forEach(nav => nav.classList.remove('active-nav'));
+
+      const sectionToShow = document.getElementById(sectionIdToShow);
+      if (sectionToShow) {
+        sectionToShow.classList.add('active');
+        const navItemIdBase = sectionIdToShow.replace('Section', '').replace('Shopify','').replace('Result',''); 
+        const navItem = document.getElementById(`nav-${navItemIdBase}`);
+        if (navItem) navItem.classList.add('active-nav');
+        else if (sectionIdToShow === 'searchResultSection' || sectionIdToShow === 'productDetailSection') { 
+            document.getElementById('nav-home').classList.add('active-nav');
+        }
+
+
+        if (sectionIdToShow === 'productDetailSection' && param) displayProductDetail(param);
+        if (sectionIdToShow === 'bagSection') renderBagItems();
+        if (sectionIdToShow === 'ordersSection') renderUserOrders();
+      }
+      window.scrollTo(0, 0); 
+
+      const isBazaarVisible = sectionIdToShow === 'homeSection' || sectionIdToShow === 'searchResultSection';
+      bazaarHeader.style.display = isBazaarVisible ? 'block' : 'none';
+      bazaarSearchBarEl.style.display = isBazaarVisible ? 'flex' : 'none'; 
+      bazaarCategoriesEl.style.display = sectionIdToShow === 'homeSection' ? 'flex' : 'none'; 
+    }
+
+    // --- Product Display (Home, Search Results, Detail) ---
+    function createBazaarProductCardHTML(product) {
+        let priceHTML = `<span class="price">₹${product.price}</span>`;
+        if (product.originalPrice && product.originalPrice > product.price) {
+            priceHTML += ` <span class="original-price">₹${product.originalPrice}</span>`;
+            const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+            if (discount > 0) priceHTML += ` <span class="discount-tag">${discount}% off</span>`;
+        }
+        let sizeInfoHTML = product.size ? `<div class="size-info">Size: ${product.size}</div>` : '';
+
+        return `
+          <div onclick="showSection('productDetailSection', '${product.id}')"> 
+              <img src="${product.image}" alt="${product.title}" />
+              <div class="title">${product.title}</div>
+          </div>
+          ${sizeInfoHTML}
+          <div class="price-container">${priceHTML}</div>
+          <div class="tags"><span class="tag">${product.category || '#Hot'}</span></div>
+          <button class="action-button" onclick="addToBag('${product.id}')">Add to Bag</button>
+        `;
+    }
+    
+    function displayBazaarProducts(productsToDisplay, containerElement = document.getElementById('bazaarProductList')) {
+        if (!containerElement) return;
+        containerElement.innerHTML = '';
+        if(productsToDisplay.length === 0 && containerElement.id === 'searchResultProductList'){
+            noSearchResultsEl.style.display = 'block';
+        } else if (containerElement.id === 'searchResultProductList') {
+            noSearchResultsEl.style.display = 'none';
+        }
+
+        productsToDisplay.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'bazaar-product-card';
+            card.innerHTML = createBazaarProductCardHTML(product);
+            containerElement.appendChild(card);
+        });
+    }
+    
+    function displayProductDetail(productId) { 
+        const product = allBazaarProducts.find(p => p.id === productId);
+        if (!product) { productDetailContentEl.innerHTML = "<p>Product not found.</p>"; return; }
+        currentOrderDetails.product = product; 
+
+        let priceHTML = `<span class="current-price">₹${product.price}</span>`;
+        if (product.originalPrice && product.originalPrice > product.price) {
+            priceHTML += `<span class="original-price">₹${product.originalPrice}</span>`;
+        }
+        const sizeDetailHTML = product.size ? `<div class="size-info"><strong>Size:</strong> ${product.size}</div>` : '';
+
+        productDetailContentEl.innerHTML = `
+            <img src="${product.image}" alt="${product.title}" class="main-image">
+            <h2 class="title">${product.title}</h2>
+            <div class="price-section">${priceHTML}</div>
+            ${sizeDetailHTML}
+            <div class="description"><h3>Description</h3><p>${product.description || 'No description.'}</p></div>
+            <button class="action-btn" onclick="showSection('addressFormSection')">Order Now</button>
+            <button class="action-btn" onclick="addToBag('${product.id}'); showSection('bagSection');" style="background-color:#6c757d; margin-top:10px;">Add to Bag & View Bag</button>`;
+    }
+
+    // --- Search Functionality ---
+    function performSearch() {
+        const searchTerm = searchInputEl.value.trim().toLowerCase();
+        if (!searchTerm) {
+            showSection('homeSection');
+            displayBazaarProducts(allBazaarProducts); 
+            return;
+        }
+        const searchResults = allBazaarProducts.filter(product => 
+            product.title.toLowerCase().includes(searchTerm) || 
+            (product.description && product.description.toLowerCase().includes(searchTerm)) ||
+            (product.category && product.category.toLowerCase().includes(searchTerm))
+        );
+        searchResultTitleEl.innerText = `Results for "${searchInputEl.value.trim()}"`;
+        displayBazaarProducts(searchResults, searchResultProductListEl);
+        showSection('searchResultSection');
+    }
+    if(searchInputEl){ 
+        searchInputEl.addEventListener('keypress', function(event){
+            if(event.key === 'Enter'){
+                performSearch();
+            }
+        });
+    }
+
+
+    // --- Order Flow (Address & Payment) ---
+    if (deliveryAddressFormEl) { 
+        deliveryAddressFormEl.addEventListener('submit', function(event) {
+            event.preventDefault();
+            currentOrderDetails.address = {
+                fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value,
+                pincode: document.getElementById('pincode').value, houseNo: document.getElementById('houseNo').value,
+                areaStreet: document.getElementById('areaStreet').value, city: document.getElementById('city').value,
+                state: document.getElementById('state').value
+            };
+            if(!currentOrderDetails.address.fullName || !currentOrderDetails.address.phone || !currentOrderDetails.address.pincode || !currentOrderDetails.address.houseNo || !currentOrderDetails.address.areaStreet || !currentOrderDetails.address.city || !currentOrderDetails.address.state) {
+                alert("Please fill all required address fields."); return;
+            }
+            showSection('paymentMethodSection');
+            deliveryAddressFormEl.reset();
+        });
+    }
+    function selectPaymentMethod(method) { 
+        currentOrderDetails.paymentMethod = method;
+        let itemsForOrder = []; let orderTotal = 0; let orderType = "";
+
+        if (currentOrderDetails.product) { 
+            itemsForOrder.push({ ...currentOrderDetails.product, quantity: 1 });
+            orderTotal = currentOrderDetails.product.price;
+            orderType = "PD"; 
+        } else if (currentOrderDetails.items && currentOrderDetails.items.length > 0) { 
+            itemsForOrder = currentOrderDetails.items;
+            orderTotal = itemsForOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            orderType = "BAG";
+        } else {
+            alert("Error processing order. No items found."); showSection('homeSection'); return;
+        }
+        
+        const orderId = `ORD-${orderType}-${Date.now().toString().slice(-6)}`; 
+        const orderDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric'});
+        
+        const newOrder = {
+            id: orderId, date: orderDate, items: itemsForOrder, total: orderTotal, 
+            status: "Processed", shippingAddress: currentOrderDetails.address,
+            paymentMethod: currentOrderDetails.paymentMethod
+        };
+        userOrders.unshift(newOrder);
+        alert(`Order ${orderId} placed successfully with ${method}! Total: ₹${orderTotal.toFixed(2)}`);
+        
+        if (orderType === "BAG") { 
+            shoppingBag = []; updateBagIconBadge(); renderBagItems(); 
+        }
+        currentOrderDetails = {}; 
+        showSection('ordersSection');
+    }
+    function proceedToAddress() { 
+        if (shoppingBag.length === 0) { alert("Your bag is empty."); return; }
+        currentOrderDetails.items = JSON.parse(JSON.stringify(shoppingBag)); 
+        currentOrderDetails.product = null; 
+        showSection('addressFormSection');
+    }
+
+    // --- Category Filter ---
+    function filterBazaarCategory(category, element) { 
+        document.querySelectorAll('.bazaar-categories button').forEach(btn => btn.classList.remove('active'));
+        if(element) element.classList.add('active');
+        const filtered = category === 'All' ? allBazaarProducts : 
+            allBazaarProducts.filter(p => p.category === category || (category === "#Deals" && p.originalPrice && p.originalPrice > p.price));
+        displayBazaarProducts(filtered);
+    }
+    
+    // --- Shopify Add Product Form Logic ---
+    if (shopifyImageUpload) { // Ensure element exists before adding listener
+        shopifyImageUpload.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+            shopifyPreview.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function (e) { shopifyPreview.src = e.target.result; }
+            reader.readAsDataURL(file);
+            } else { shopifyPreview.style.display = 'none'; shopifyPreview.src = '#'; }
+        });
+    }
+    function saveShopifyProduct() { 
+      const title = document.getElementById('shopifyTitle').value.trim();
+      const description = document.getElementById('shopifyDescription').value.trim();
+      const price = parseFloat(document.getElementById('shopifyPrice').value);
+      const comparePrice = parseFloat(document.getElementById('shopifyComparePrice').value) || null;
+      const size = document.getElementById('shopifySize').value.trim() || null; 
+      const inventory = parseInt(document.getElementById('shopifyInventory').value);
+      const status = document.getElementById('shopifyStatus').value;
+      const imageFile = shopifyImageUpload.files[0]; 
+
+      if (!title || isNaN(price) || price <= 0 || isNaN(inventory) || !imageFile) {
+        shopifyProductOutput.style.color = 'red';
+        shopifyProductOutput.innerText = "Fill all required fields & upload image.";
+        setTimeout(() => { shopifyProductOutput.innerText = ""; }, 3000);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+          const newProductId = 'p' + (allBazaarProducts.length + 1) + Date.now();
+          const newBazaarProduct = {
+              id: newProductId, title: title, price: price, originalPrice: comparePrice,
+              description: description, image: e.target.result, size: size, 
+              category: status === 'active' ? "New Arrival" : status.charAt(0).toUpperCase() + status.slice(1)
+          };
+          allBazaarProducts.unshift(newBazaarProduct); 
+          shopifyProductOutput.style.color = 'green';
+          shopifyProductOutput.innerText = `Product "${title}" saved! Redirecting...`;
+          setTimeout(() => {
+              clearShopifyForm(); showSection('homeSection');
+              displayBazaarProducts(allBazaarProducts); 
+              shopifyProductOutput.innerText = ""; 
+          }, 1500);
+      }
+      reader.readAsDataURL(imageFile); 
+    }
+    function clearShopifyForm() { 
+      document.getElementById('shopifyTitle').value = "";
+      document.getElementById('shopifyDescription').value = "";
+      document.getElementById('shopifyPrice').value = "";
+      document.getElementById('shopifyComparePrice').value = "";
+      document.getElementById('shopifySize').value = ""; 
+      document.getElementById('shopifyInventory').value = "";
+      document.getElementById('shopifyStatus').value = "active";
+      shopifyImageUpload.value = ""; 
+      shopifyPreview.style.display = "none"; shopifyPreview.src = '#';
+      shopifyProductOutput.innerText = "";
+    }
+
+    // --- Shopping Bag Logic ---
+    function addToBag(productId) { 
+        const productToAdd = allBazaarProducts.find(p => p.id === productId);
+        if (!productToAdd) return;
+        const existingItem = shoppingBag.find(item => item.id === productId);
+        if (existingItem) existingItem.quantity++;
+        else shoppingBag.push({ ...productToAdd, quantity: 1 });
+        alert(`"${productToAdd.title}" added to bag!`);
+        updateBagIconBadge();
+    }
+    function renderBagItems() { 
+        if (shoppingBag.length === 0) {
+            bagItemsContainer.innerHTML = '<p class="empty-bag-message">Your bag is empty.</p>';
+            bagSummaryContainer.style.display = 'none'; return;
+        }
+        bagItemsContainer.innerHTML = ''; 
+        let subtotal = 0;
+        shoppingBag.forEach(item => {
+            const itemTotal = item.price * item.quantity; subtotal += itemTotal;
+            const sizeHTML = item.size ? `<div style="font-size:12px; color:#777;">Size: ${item.size}</div>` : '';
+            bagItemsContainer.innerHTML += `
+                <div class="bag-item" id="bag-item-${item.id}">
+                    <img src="${item.image}" alt="${item.title}">
+                    <div class="bag-item-details">
+                        <div class="title">${item.title}</div>
+                        ${sizeHTML}
+                        <div class="price">₹${item.price} x ${item.quantity} = ₹${itemTotal.toFixed(2)}</div>
+                        <div class="bag-item-quantity">
+                            <button onclick="updateBagQuantity('${item.id}', -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="updateBagQuantity('${item.id}', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="bag-item-remove"><button onclick="removeFromBag('${item.id}')">Remove</button></div>
+                </div>`;
+        });
+        bagSubtotalEl.innerText = `₹${subtotal.toFixed(2)}`;
+        bagTotalEl.innerText = `₹${subtotal.toFixed(2)}`; 
+        bagSummaryContainer.style.display = 'block';
+    }
+    function updateBagQuantity(productId, change) { 
+        const itemInBag = shoppingBag.find(item => item.id === productId);
+        if (itemInBag) {
+            itemInBag.quantity += change;
+            if (itemInBag.quantity <= 0) removeFromBag(productId);
+            else renderBagItems();
+        }
+        updateBagIconBadge();
+    }
+    function removeFromBag(productId) { 
+        shoppingBag = shoppingBag.filter(item => item.id !== productId);
+        renderBagItems(); updateBagIconBadge();
+    }
+    function updateBagIconBadge() { 
+        const bagNavIcon = document.getElementById('nav-bag');
+        const totalItems = shoppingBag.reduce((sum, item) => sum + item.quantity, 0);
+        let badgeSpan = bagNavIcon.querySelector('.bag-badge');
+        if (totalItems > 0) {
+            if (!badgeSpan) {
+                badgeSpan = document.createElement('sup'); badgeSpan.className = 'bag-badge';
+                badgeSpan.style.cssText = 'background-color:#f54d5f; color:white; border-radius:50%; padding:1px 5px; font-size:10px; position:absolute; top:0px; right:10px;';
+                bagNavIcon.style.position = 'relative'; bagNavIcon.appendChild(badgeSpan);
+            }
+            badgeSpan.textContent = totalItems;
+        } else if (badgeSpan) badgeSpan.remove();
+    }
+
+    // --- Orders Logic ---
+    function renderUserOrders() { 
+        if (userOrders.length === 0) {
+            orderListContainer.innerHTML = '<p class="empty-bag-message" style="padding:20px 0;">You have no orders yet.</p>';
+            return;
+        }
+        orderListContainer.innerHTML = '';
+        userOrders.forEach(order => {
+            let itemsHTML = '';
+            order.items.forEach(item => {
+                const itemSizeHTML = item.size ? ` <small>(Size: ${item.size})</small>` : '';
+                itemsHTML += `
+                    <div class="order-product">
+                        <img src="${item.image}" alt="${item.title}">
+                        <div class="name">${item.title}${itemSizeHTML}</div>
+                        <div class="qty-price">Qty: ${item.quantity}<br>₹${(item.price * item.quantity).toFixed(2)}</div>
+                    </div>`;
+            });
+
+            orderListContainer.innerHTML += `
+                <div class="order-list-item">
+                    <div class="order-id">Order ID: ${order.id}</div>
+                    <div class="order-date">Placed on: ${order.date}</div>
+                    <p style="margin-top:10px; margin-bottom:5px; font-size:13px; color:#555;"><strong>Shipped to:</strong> ${order.shippingAddress?.fullName || 'N/A'}, ${order.shippingAddress?.houseNo || ''}, ${order.shippingAddress?.city || ''}</p>
+                    <p style="margin-bottom:10px; font-size:13px; color:#555;"><strong>Payment:</strong> ${order.paymentMethod || 'N/A'}</p>
+                    ${itemsHTML}
+                    <div class="order-total">Total: ₹${order.total.toFixed(2)}</div>
+                    <div class="order-status ${order.status.toLowerCase()}">${order.status}</div>
+                </div>`;
+        });
+    }
+
+    // --- Initial Load ---
+    window.onload = function() { 
+      displayBazaarProducts(allBazaarProducts); 
+      showSection('homeSection'); 
+      const firstCategoryButton = document.querySelector('.bazaar-categories button');
+      if(firstCategoryButton) firstCategoryButton.classList.add('active');
+      updateBagIconBadge();
+    };
+  </script>
+</body>
+</html>
