@@ -1,711 +1,1238 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/> 
-  <title>Shanu Jishan cho</title> 
-  <style>
-    body {
-      margin: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;
-      padding-bottom: 60px; 
-      overflow-x: hidden; /* Prevent horizontal scroll */
-    }
-    /* --- Common Styles --- */
-    .main-section { 
-      display: none; animation: fadeIn 0.5s; padding: 10px; 
-      box-sizing: border-box; /* Ensure padding doesn't increase width */
-      width: 100%;
-    }
-    .main-section.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .form-container, .product-detail-container, .shopify-product-manager-container { 
-      background: #fff; padding: 20px; border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-      max-width: 100%; /* Let it take full width on mobile */
-      margin: 10px auto;
-      box-sizing: border-box;
-    }
-     @media (min-width: 600px) { /* Apply max-width only on larger screens */
-        .form-container, .product-detail-container, .shopify-product-manager-container {
-            max-width: 500px; /* Or your preferred max-width */
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KisTronTube - Ad System (Fix Attempt 8 - Full Code Restore with Search & Delete)</title>
+
+    <script type="module">
+        // ============== FIREBASE SDK (v9+) & CONFIG ===============
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { 
+            getDatabase, 
+            ref as firebaseRefGlobal, 
+            set as firebaseSet, 
+            get as firebaseGet, 
+            child as firebaseChild, 
+            push as firebasePush, 
+            serverTimestamp as firebaseServerTimestamp, 
+            query as firebaseQuery, 
+            orderByChild as firebaseOrderByChild, 
+            onValue, 
+            remove as firebaseDbRemove,
+            goOnline, 
+            goOffline,
+            onDisconnect 
+        } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAwXNZsCdsJjOjWueG4s69apta-E8_vU64", 
+            authDomain: "look-24b9a.firebaseapp.com",
+            projectId: "look-24b9a",
+            storageBucket: "look-24b9a.appspot.com",
+            messagingSenderId: "926441672779",
+            appId: "1:926441672779:web:3ad9fbf144f582f157fdce",
+            databaseURL: "https://look-24b9a-default-rtdb.firebaseio.com/"
+        };
+
+        let FIREBASE_DB_INSTANCE;
+        let firebaseAppInitialized = false;
+        let firebaseAppInstance; 
+        try {
+            firebaseAppInstance = initializeApp(firebaseConfig); 
+            FIREBASE_DB_INSTANCE = getDatabase(firebaseAppInstance);
+            firebaseAppInitialized = true;
+            console.log("Firebase App and DB Instance Initialized.");
+            goOnline(FIREBASE_DB_INSTANCE);
+            console.log("Attempted to set Firebase DB online.");
+
+        } catch (e) {
+            console.error("CRITICAL: Firebase app initialization FAILED:", e);
         }
-    }
 
-    .form-container h2, .form-container h3 { text-align: center; color: #333; margin-top: 0; margin-bottom: 20px; }
-    .form-container label, .shopify-product-manager-container label { 
-      font-weight: bold; margin-top: 15px; display: block; color: #555; margin-bottom: 5px; 
-    }
-    .form-container input[type="text"],
-    .form-container input[type="email"],
-    .form-container input[type="tel"],
-    .form-container input[type="number"],
-    .form-container textarea,
-    .form-container select,
-    .shopify-product-manager-container input, 
-    .shopify-product-manager-container select, 
-    .shopify-product-manager-container textarea {
-      width: 100%; padding: 12px; margin-top: 5px; border-radius: 5px;
-      border: 1px solid #ccc; font-size: 16px; box-sizing: border-box;
-    }
-    .form-container button.action-btn, 
-    .shopify-product-manager-container .actions button,
-    .product-detail-container button.action-btn {
-      width: 100%; padding: 12px; margin-top: 20px; border-radius: 5px;
-      border: none; font-size: 16px; font-weight: bold; cursor: pointer;
-      color: white; background-color: #f54d5f;
-    }
-    .form-container button.action-btn:hover, 
-    .shopify-product-manager-container .actions button:hover,
-    .product-detail-container button.action-btn:hover { background-color: #d13c4e; }
-    .error-message { color: red; font-size: 14px; margin-top: 5px; }
-    .button-group { display: flex; gap: 10px; margin-top: 15px; }
-    .button-group button { flex: 1; }
+        // ============== TELEGRAM CONFIG & FUNCTIONS ===================
+        const TELEGRAM_BOT_TOKEN = "7283886739:AAG37dja967G7IEl6WjbcWkxSHN5-iapF3U";
+        const TELEGRAM_CHAT_ID_FOR_FILES = "@hhhhbht5vg";
+        const MAX_TELEGRAM_GETFILE_SIZE_BYTES = 20 * 1024 * 1024;
 
+        async function sendTelegramRequest(method, params = {}) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+            let response;
+            if (params instanceof FormData) { 
+                response = await fetch(url, { method: "POST", body: params });
+            } else { 
+                response = await fetch(url, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+            }
+            const data = await response.json();
+            if (!data.ok) {
+                console.error(`Telegram API Error Details (${method}): Status ${response.status}, OK: ${data.ok}, Description: ${data.description}, Error Code: ${data.error_code}, Parameters:`, data.parameters);
+                throw new Error(`Telegram API Error (${method}): ${data.description} (Error Code: ${data.error_code})`);
+            }
+            return data.result;
+        }
 
-    /* --- Bazaar Home Page Styles --- */
-    header.bazaar-header { 
-      background-color: #f54d5f; padding: 15px; color: white; text-align: center; 
-      font-size: 24px; font-weight: bold; position: sticky; top: 0; z-index: 1000;
-    }
-    .bazaar-search-bar { 
-      padding: 10px; background-color: #f54d5f; position: sticky; top: 54px; z-index: 999;
-      display: flex; /* For search button */
-      gap: 8px;
-    }
-    .bazaar-search-bar input { 
-      flex-grow: 1; /* Input takes available space */
-      padding: 10px; border: none; border-radius: 8px; font-size: 16px; box-sizing: border-box;
-    }
-    .bazaar-search-bar button {
-        padding: 10px 15px; border: none; border-radius: 8px; background-color: #fff;
-        color: #f54d5f; font-weight: bold; cursor: pointer;
-    }
+        async function uploadFileToTelegram(file, caption = "Uploaded File", onProgress) {
+            console.log(`Attempting to upload file: ${file.name} (Type: ${file.type}, Size: ${(file.size / 1024 / 1024).toFixed(2)} MB) to chat_id: ${TELEGRAM_CHAT_ID_FOR_FILES}`);
+            
+            if (file.type.startsWith('video/') && file.size > MAX_TELEGRAM_GETFILE_SIZE_BYTES) {
+                const errorMsg = `Video file is too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Maximum allowed size for direct linking via Bot API is 20MB.`;
+                console.error(errorMsg);
+                if (onProgress) onProgress(100, errorMsg);
+                throw new Error(errorMsg); 
+            }
 
-    .bazaar-categories { 
-      display: flex; overflow-x: auto; background-color: #fff; padding: 10px; gap: 10px; 
-      border-bottom: 1px solid #eee; position: sticky; top: 108px; z-index: 998;
-    }
-    .bazaar-categories::-webkit-scrollbar { height: 5px; }
-    .bazaar-categories::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
-    .bazaar-categories button { 
-      padding: 8px 16px; border: none; background-color: #f4f4f4; border-radius: 20px; 
-      font-weight: bold; white-space: nowrap; cursor: pointer; font-size: 14px;
-    }
-    .bazaar-categories button.active { background-color: #f54d5f; color: white; }
-    .bazaar-banner { margin: 10px 0; border-radius: 8px; overflow: hidden; } /* Adjusted margin */
-    .bazaar-banner img { width: 100%; border-radius: 8px; display: block; }
-    .bazaar-section-title { 
-        padding: 10px 0px; font-size: 18px; font-weight: bold; color: #333; 
-        /* background-color: #fff; */ margin-top: 5px;
-        /* border-bottom: 1px solid #eee; */
-    }
-    .bazaar-products { 
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Adjusted minmax */
-      gap: 10px;
-    }
-    .bazaar-product-card { 
-      background-color: #fff; border-radius: 8px; overflow: hidden; padding: 10px; 
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; 
-      justify-content: space-between; cursor: pointer; 
-    }
-    .bazaar-product-card:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-    .bazaar-product-card img { 
-      width: 100%; height: 150px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;
-    }
-    /* ... other .bazaar-product-card sub-element styles remain same ... */
-    .bazaar-product-card .title { font-weight: bold; font-size: 14px; margin-bottom: 4px; color: #333; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.2em;}
-    .bazaar-product-card .size-info { font-size: 11px; color: #888; margin-bottom: 4px; }
-    .bazaar-product-card .price-container { display: flex; align-items: baseline; gap: 5px; margin-bottom: 6px; }
-    .bazaar-product-card .price { color: #000; font-weight: bold; font-size: 15px; }
-    .bazaar-product-card .original-price { color: #999; text-decoration: line-through; font-size: 12px; }
-    .bazaar-product-card .discount-tag { color: #388e3c; font-weight: bold; font-size: 12px; }
-    .bazaar-product-card .action-button { background-color: #f54d5f; border: none; color: white; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: auto;}
+            const formData = new FormData();
+            formData.append("chat_id", TELEGRAM_CHAT_ID_FOR_FILES);
+            let method;
+            let fileTypeField;
 
+            if (file.type.startsWith('video/')) {
+                method = "sendVideo";
+                fileTypeField = "video";
+                formData.append("supports_streaming", true);
+                if (caption) formData.append("caption", caption.substring(0, 1024));
+            } else if (file.type.startsWith('image/')) {
+                method = "sendPhoto";
+                fileTypeField = "photo";
+                if (caption) formData.append("caption", caption.substring(0, 1024));
+            } else {
+                throw new Error("Unsupported file type for Telegram upload.");
+            }
+            formData.append(fileTypeField, file);
 
-    /* --- Product Detail Page Styles --- */
-    .product-detail-container img.main-image {
-        width: 100%; max-height: 350px; object-fit: contain; /* Changed to contain for better fit */
-        border-radius: 6px; margin-bottom: 15px; border: 1px solid #eee;
-    }
-    /* ... other .product-detail-container styles ... */
-    .product-detail-container .title { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }
-    .product-detail-container .price-section { margin-bottom: 15px; }
-    .product-detail-container .current-price { font-size: 18px; font-weight: bold; color: #f54d5f; margin-right: 10px;}
-    .product-detail-container .original-price { font-size: 15px; color: #888; text-decoration: line-through; }
-    .product-detail-container .description { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 20px; }
-    .product-detail-container .size-info { font-size: 14px; color: #444; margin-bottom: 15px;}
+            if (onProgress) onProgress(0, "Starting Telegram upload...");
+            try {
+                const result = await sendTelegramRequest(method, formData);
+                if (onProgress) onProgress(100, "Telegram upload complete!");
+                
+                if (method === "sendVideo" && result.video && result.video.file_id) {
+                    return result.video.file_id;
+                } else if (method === "sendPhoto" && result.photo && result.photo.length > 0) {
+                    return result.photo.pop().file_id; 
+                } else {
+                    throw new Error("Telegram API did not return a valid file_id.");
+                }
+            } catch (error) {
+                if (!error.message.includes("Video file is too large")) {
+                    if (onProgress) onProgress(100, `Telegram upload failed: ${error.message}`);
+                }
+                throw error;
+            }
+        }
 
+        async function getFileURLFromTelegram(fileId) {
+            if (!fileId) throw new Error("Invalid fileId provided to getFileURLFromTelegram.");
+            try {
+                const result = await sendTelegramRequest('getFile', { file_id: fileId });
+                const filePath = result.file_path;
+                return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
+            } catch (error) {
+                throw error; 
+            }
+        }
+        
+        // ============== THUMBNAIL GENERATION FUNCTION =============
+        async function generateThumbnailFromVideo(videoEl, targetWidth = 320) {
+            return new Promise((resolve, reject) => {
+                if (!videoEl || videoEl.readyState < 1) { 
+                    setTimeout(() => {
+                        if (!videoEl || videoEl.readyState < 1) {
+                           return reject(new Error("Video element not ready for thumbnail."));
+                        }
+                        proceedWithThumbnailGeneration(videoEl, targetWidth, resolve, reject);
+                    }, 300);
+                } else {
+                    proceedWithThumbnailGeneration(videoEl, targetWidth, resolve, reject);
+                }
+            });
+        }
+        function proceedWithThumbnailGeneration(videoEl, targetWidth, resolve, reject) {
+            const canvas = document.createElement('canvas');
+            if (videoEl.videoWidth === 0 || videoEl.videoHeight === 0) {
+                canvas.width = targetWidth;
+                canvas.height = targetWidth * (9/16); 
+            } else {
+                const aspectRatio = videoEl.videoWidth / videoEl.videoHeight;
+                canvas.width = targetWidth;
+                canvas.height = targetWidth / aspectRatio;
+            }
+            const ctx = canvas.getContext('2d');
+            try {
+                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                if (dataUrl === "data:,") {
+                   reject(new Error("Generated thumbnail data URL is blank."));
+                } else {
+                   resolve(dataUrl);
+                }
+            } catch (e) {
+                reject(new Error(`Canvas operation failed: ${e.message}.`));
+            }
+        }
+        
+        // ============== AD SYSTEM CONSTANTS & VARIABLES ============
+        const AD_PROVIDER_URL = "https://www.profitableratecpm.com/zhwe2qdenw?key=21bf0319ba98d1edd5facfbedbc3ed3e";
+        const PRE_ROLL_AD_TOTAL_DURATION = 10; 
+        const PRE_ROLL_AD_SKIPPABLE_AFTER = 5; 
+        const MID_ROLL_AD_TOTAL_DURATION = 15; 
+        const MID_ROLL_AD_SKIPPABLE_AFTER = 5; 
+        const MID_ROLL_INTERVAL = 5 * 60; 
+        
+        let adOverlayGlobal, adIframeContainerGlobal, adCountdownGlobal, skipAdButtonGlobal;
+        let adTimerInterval, adCountdownTimer;
+        let currentAdResolve = null;
+        let isAdPlaying = false;
+        let videoAdSlots = { currentVideoId: null, slots: [], nextSlotIndex: 0 };
+        let isSearchActive = false; 
 
-    /* Shopify Add Product Form Styles */
-     .shopify-product-manager-container textarea { min-height: 80px; resize: vertical; }
-     .shopify-product-manager-container .image-preview {
-      margin-top: 10px; max-width: 100%; max-height: 200px; 
-      border-radius: 5px; border: 1px dashed #ccc;
-      object-fit: contain; /* Important for image preview scaling */
-      display: none;
-    }
-    /* ... other .shopify-product-manager-container styles ... */
-    .shopify-product-manager-container .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
-    .shopify-product-manager-container .actions button { width: 100%; padding: 12px; margin-top: 0; border-radius: 5px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: white; }
-    .shopify-product-manager-container button.save-btn { background-color: #008060; }
-    .shopify-product-manager-container button.save-btn:hover { background-color: #005a41; }
-    .shopify-product-manager-container button.clear-btn { background-color: #d93025; }
-    .shopify-product-manager-container button.clear-btn:hover { background-color: #a52714; }
-    #shopifyProductOutput { margin-top: 20px; text-align: center; font-weight: bold; }
+        // ============== DOMContentLoaded and App Logic ===================
+        document.addEventListener('DOMContentLoaded', async () => {
+          try {
+            console.log("DOMContentLoaded event fired. Setting up app...");
 
+            // DOM Elements
+            const appTopBar = document.getElementById('appTopBar');
+            const playerSection = document.getElementById('playerSection');
+            const mainVideoPlayer = document.getElementById('mainVideoPlayer'); 
+            const mainImageViewerWrapper = document.getElementById('mainImageViewerWrapper');
+            const mainImageViewer = document.getElementById('mainImageViewer');
+            const playerContentTitle = document.getElementById('playerContentTitle');
+            const playerContentMeta = document.getElementById('playerContentMeta');
+            const deleteCurrentContentBtn = document.getElementById('deleteCurrentContentBtn');
+            const homeVideoFeed = document.getElementById('homeVideoFeed');
+            const categoryHeaderHome = document.getElementById('categoryHeaderHome');
+            const categoryTabsContainer = document.querySelector('#categoryHeaderHome .category-tabs');
+            const noResultsMessageHome = document.getElementById('noResultsMessageHome');
+            const footerNavButtons = document.querySelectorAll('.footer-nav .nav-button');
+            const allPageContents = document.querySelectorAll('.page-content');
+            const searchButtonAppTop = document.getElementById('searchButtonAppTop');
+            const searchOverlay = document.getElementById('searchOverlay');
+            const closeSearchOverlayBtn = document.getElementById('closeSearchOverlayBtn');
+            const searchInputField = document.getElementById('searchInputField');
+            const clearSearchInputBtn = document.getElementById('clearSearchInputBtn');
+            const micSearchOverlayBtn = document.getElementById('micSearchOverlayBtn');
+            const openUploadModalBtnGlobal = document.getElementById('openUploadModalBtnGlobal'); 
+            const uploadModalOverlayGlobal = document.getElementById('uploadModalOverlayGlobal');
+            const closeUploadModalBtnGlobal = document.getElementById('closeUploadModalBtnGlobal');
+            const uploadModalTitleGlobal = document.getElementById('uploadModalTitleGlobal');
+            const uploadStep1Global = document.getElementById('uploadStep1Global');
+            const uploadStep2Global = document.getElementById('uploadStep2Global');
+            const triggerFileInputBtnGlobal = document.getElementById('triggerFileInputBtnGlobal');
+            const hiddenFileInputGlobal = document.getElementById('hiddenFileInputGlobal');
+            const selectedFileInfoGlobal = document.getElementById('selectedFileInfoGlobal');
+            const videoPreviewUploadGlobal = document.getElementById('videoPreviewUploadGlobal');
+            const imagePreviewUploadGlobal = document.getElementById('imagePreviewUploadGlobal');
+            const cancelUploadStep1BtnGlobal = document.getElementById('cancelUploadStep1BtnGlobal');
+            const nextToUploadStep2BtnGlobal = document.getElementById('nextToUploadStep2BtnGlobal');
+            const backToUploadStep1BtnGlobal = document.getElementById('backToUploadStep1BtnGlobal');
+            const finalUploadFileBtnGlobal = document.getElementById('finalUploadFileBtnGlobal');
+            const uploadDetailsFormGlobal = document.getElementById('uploadDetailsFormGlobal');
+            const uploadStatusMessage = document.getElementById('uploadStatusMessage');
+            const deletePasswordPromptOverlay = document.getElementById('deletePasswordPromptOverlay');
+            const deletePasswordInput = document.getElementById('deletePasswordInput');
+            const confirmDeleteVideoBtn = document.getElementById('confirmDeleteVideoBtn');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 
-    /* Bag & Orders Section Styles */
-    /* ... existing bag and order styles are generally okay for mobile ... */
-    .empty-bag-message { text-align:center; color:#777; padding: 20px 0;}
-    .order-list-item { background-color: #fff; border-radius: 6px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    /* ... other order item styles ... */
-    .order-list-item .order-id { font-weight: bold; font-size: 15px; color: #f54d5f; margin-bottom: 8px;}
-    .order-list-item .order-date { font-size: 11px; color: #777; margin-bottom: 10px;}
-    .order-list-item .order-product { display: flex; align-items: center; margin-bottom: 8px;}
-    .order-list-item .order-product img { width: 45px; height: 45px; object-fit: cover; border-radius: 4px; margin-right: 10px;}
-    .order-list-item .order-product .name { font-size: 13px; flex-grow: 1;}
-    .order-list-item .order-product .qty-price { font-size: 12px; color: #555; text-align: right;}
-    .order-list-item .order-total { font-weight: bold; text-align: right; margin-top: 10px; font-size: 14px;}
-    .order-list-item .order-status { font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 12px; color: white; display: inline-block; margin-top: 10px; }
-    .order-status.processed { background-color: #007bff; } 
-    .order-status.shipped { background-color: #ffc107; color: #333 !important; } 
-    .order-status.delivered { background-color: #28a745; } 
+            adOverlayGlobal = document.getElementById('adOverlay');
+            adIframeContainerGlobal = document.getElementById('adIframeContainer');
+            adCountdownGlobal = document.getElementById('adCountdown');
+            skipAdButtonGlobal = document.getElementById('skipAdButton');
 
+            let currentPlayingItemId = null, currentPlayingItemData = null, previousPageIdBeforePlayer = 'homePageContent';
+            let selectedFileForUpload = null, selectedFileTypeForUpload = null, generatedVideoThumbnailDataUrl = null;
+            const CORRECT_DELETE_PASSWORD = "@Shanu000"; 
+            let masterFeedItemsData = [], currentDisplayedFeedItems = [];
 
-    /* Bottom Navigation Styles */
-    .bottom-nav { 
-      display: flex; justify-content: space-around; background-color: #fff;
-      position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 0; 
-      border-top: 1px solid #ddd; box-shadow: 0 -2px 5px rgba(0,0,0,0.05); z-index: 1001;
-    }
-    /* ... other bottom-nav styles ... */
-    .bottom-nav div { text-align: center; color: #555; cursor: pointer; flex: 1; padding: 2px 0; }
-    .bottom-nav div.active-nav { color: #f54d5f; }
-    .bottom-nav div img { width: 22px; height: 22px; margin-bottom: 2px; }
-    .bottom-nav div span { display: block; font-size: 11px; font-weight: 500; }
+            function formatTimestampForDisplay(timestamp) {
+                if (!timestamp) return "Just now";
+                try {
+                    const date = new Date(timestamp);
+                    if (isNaN(date.getTime())) return "Invalid date";
+                    return date.toLocaleDateString([], { year:'numeric', month: 'short', day:'numeric'}) + " " + date.toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' });
+                } catch (e) { return "Date unavailable"; }
+            }
 
-  </style>
+            // ============== AD SYSTEM FUNCTIONS =======================
+            function createAdIframe(height = "250px", isBanner = false) {
+                const iframe = document.createElement('iframe');
+                iframe.src = AD_PROVIDER_URL;
+                iframe.width = "100%";
+                iframe.height = height;
+                iframe.style.border = "none";
+                if (isBanner) iframe.loading = "lazy"; 
+                return iframe;
+            }
+            function showModalAd(adType, totalDuration, skippableAfter) {
+                return new Promise((resolve) => {
+                    if (isAdPlaying) { resolve(); return; }
+                    isAdPlaying = true; currentAdResolve = resolve;
+                    adIframeContainerGlobal.innerHTML = ''; 
+                    adIframeContainerGlobal.appendChild(createAdIframe("300px")); 
+                    adOverlayGlobal.style.display = 'flex';
+                    skipAdButtonGlobal.style.display = 'none';
+                    let countdown = totalDuration;
+                    adCountdownGlobal.textContent = `Ad will end in ${countdown}s`;
+                    if (adTimerInterval) clearInterval(adTimerInterval);
+                    if (adCountdownTimer) clearInterval(adCountdownTimer);
+                    adCountdownTimer = setInterval(() => {
+                        countdown--;
+                        if (countdown <= 0) { finishAd(); } 
+                        else {
+                            adCountdownGlobal.textContent = `Ad will end in ${countdown}s`;
+                            if (totalDuration - countdown >= skippableAfter && skipAdButtonGlobal.style.display === 'none') {
+                                skipAdButtonGlobal.style.display = 'block';
+                            }
+                             if (skipAdButtonGlobal.style.display === 'block') {
+                                 const remainingSkipTime = skippableAfter - (totalDuration - countdown);
+                                 if (remainingSkipTime > 0 ) adCountdownGlobal.textContent = `Skip in ${remainingSkipTime}s or Ad ends in ${countdown}s`;
+                                 else adCountdownGlobal.textContent = `Ad ends in ${countdown}s`;
+                            }
+                        }
+                    }, 1000);
+                    skipAdButtonGlobal.onclick = () => finishAd();
+                });
+            }
+            function finishAd() {
+                clearInterval(adTimerInterval); clearInterval(adCountdownTimer);
+                adOverlayGlobal.style.display = 'none'; adIframeContainerGlobal.innerHTML = ''; 
+                isAdPlaying = false;
+                if (currentAdResolve) { currentAdResolve(); currentAdResolve = null; }
+            }
+            async function handlePreRollAd() { await showModalAd('preroll', PRE_ROLL_AD_TOTAL_DURATION, PRE_ROLL_AD_SKIPPABLE_AFTER); }
+            async function handleMidRollAd() {
+                if (mainVideoPlayer.paused && !isAdPlaying) return; 
+                mainVideoPlayer.pause();
+                await showModalAd('midroll', MID_ROLL_AD_TOTAL_DURATION, MID_ROLL_AD_SKIPPABLE_AFTER);
+                if (currentPlayingItemId && !isAdPlaying) mainVideoPlayer.play().catch(e => console.error("Error resuming video:", e));
+            }
+            function setupMidRollSlots(videoId, durationInSeconds) {
+                videoAdSlots.currentVideoId = videoId; videoAdSlots.slots = []; videoAdSlots.nextSlotIndex = 0;
+                if (durationInSeconds > MID_ROLL_INTERVAL) {
+                    for (let t = MID_ROLL_INTERVAL; t < durationInSeconds; t += MID_ROLL_INTERVAL) videoAdSlots.slots.push(t);
+                }
+            }
+            if (mainVideoPlayer) {
+                mainVideoPlayer.addEventListener('timeupdate', () => {
+                    if (!currentPlayingItemId || isAdPlaying || !videoAdSlots.slots.length || videoAdSlots.currentVideoId !== currentPlayingItemId) return;
+                    const currentTime = mainVideoPlayer.currentTime;
+                    if (videoAdSlots.nextSlotIndex < videoAdSlots.slots.length && currentTime >= videoAdSlots.slots[videoAdSlots.nextSlotIndex]) {
+                        videoAdSlots.nextSlotIndex++; 
+                        handleMidRollAd();
+                    }
+                });
+                mainVideoPlayer.addEventListener('loadedmetadata', () => {
+                    if (currentPlayingItemData && (currentPlayingItemData.durationInSeconds === undefined || currentPlayingItemData.durationInSeconds === null || currentPlayingItemData.durationInSeconds === 0)) {
+                        const duration = mainVideoPlayer.duration;
+                        if (duration && !isNaN(duration) && duration > 0) {
+                            currentPlayingItemData.durationInSeconds = Math.round(duration);
+                            const masterItem = masterFeedItemsData.find(item => item.id === currentPlayingItemData.id);
+                            if (masterItem) masterItem.durationInSeconds = currentPlayingItemData.durationInSeconds;
+                            setupMidRollSlots(currentPlayingItemData.id, currentPlayingItemData.durationInSeconds);
+                        }
+                    } else if (currentPlayingItemData && currentPlayingItemData.durationInSeconds) {
+                        setupMidRollSlots(currentPlayingItemData.id, currentPlayingItemData.durationInSeconds);
+                    }
+                });
+            } else {
+                console.warn("mainVideoPlayer element not found when trying to add ad event listeners globally.");
+            }
+            
+            // ============== Core App Functions (render, play, populate etc.) ===================
+            function renderFeedItem(itemData, isSuggested = false) {
+                const itemElement = document.createElement('article');
+                itemElement.className = `video-item ${isSuggested && itemData.type === 'video' ? 'suggested' : ''}`;
+                itemElement.dataset.itemId = itemData.id; 
+                const durationHTML = (itemData.type === 'video' && itemData.duration && itemData.duration !== "N/A") ? `<span class="video-duration">${itemData.duration}</span>` : '';
+                const itemTypeIndicator = itemData.type === 'image' ? '🖼️ ' : (itemData.type === 'video' ? '▶️ ' : '');
+                const displayTimestamp = formatTimestampForDisplay(itemData.createdAt || itemData.timestamp);
+                itemElement.innerHTML = `
+                    <div class="thumbnail-container">
+                        <img src="${itemData.thumbnailSrc || 'https://via.placeholder.com/640x360/1c1c1c/ffffff?text=Loading...'}" alt="${itemData.title}" loading="lazy" onerror="this.onerror=null; this.src='https://via.placeholder.com/640x360/111/fff?text=Error+Thumb';">
+                        ${durationHTML}
+                    </div>
+                    <div class="video-info">
+                        <img src="${itemData.channelIconSrc || 'https://via.placeholder.com/36/888/fff?text=C'}" alt="${itemData.channelName}" class="channel-icon">
+                        <div class="video-details">
+                            <h3 class="video-title">${itemTypeIndicator}${itemData.title}</h3>
+                            <p class="video-meta">${itemData.channelName} • ${itemData.views || 0} views • ${displayTimestamp}</p>
+                        </div>
+                        ${!isSuggested ? `<button class="more-options-button" data-item-id="${itemData.id}">⋮</button>` : ''}
+                    </div>`;
+                itemElement.addEventListener('click', async () => { 
+                    if (!itemData.fileUrl) { alert("No valid source to play."); return; }
+                    const activePage = document.querySelector('.page-content.active');
+                    if (activePage) previousPageIdBeforePlayer = activePage.id;
+                    await playContent(itemData.id); 
+                });
+                if (!isSuggested) {
+                    const moreOptionsBtn = itemElement.querySelector('.more-options-button');
+                    if(moreOptionsBtn) moreOptionsBtn.addEventListener('click', (e) => { e.stopPropagation();});
+                }
+                return itemElement;
+            }
+            function createFeedAdElement() { 
+                const adElement = document.createElement('div');
+                adElement.className = 'feed-ad-item';
+                adElement.appendChild(createAdIframe("120px", true)); 
+                return adElement;
+            }
+            function createSuggestedAdElement() {
+                const adContainer = document.createElement('div');
+                adContainer.className = 'suggested-ad-item video-item suggested';
+                const adIframe = createAdIframe("80px", true); 
+                const dismissButton = document.createElement('button');
+                dismissButton.className = 'dismiss-ad-btn';
+                dismissButton.innerHTML = '×';
+                dismissButton.title = "Dismiss Ad";
+                dismissButton.onclick = (e) => { e.stopPropagation(); adContainer.remove(); };
+                adContainer.appendChild(adIframe); adContainer.appendChild(dismissButton);
+                return adContainer;
+            }
+            function populateFeed(feedElement, itemsToDisplay, isSuggestedFeed = false) {
+                if (!feedElement) return;
+                if (itemsToDisplay.length === 0) return;
+            
+                let contentItemCounter = 0;
+                itemsToDisplay.forEach((item, index) => {
+                    feedElement.appendChild(renderFeedItem(item, isSuggestedFeed));
+                    contentItemCounter++;
+                    if (!isSuggestedFeed && contentItemCounter % 4 === 0 && index < itemsToDisplay.length -1) {
+                        feedElement.appendChild(createFeedAdElement());
+                    } else if (isSuggestedFeed && contentItemCounter % 2 === 0 && index < itemsToDisplay.length -1) {
+                        feedElement.appendChild(createSuggestedAdElement());
+                    }
+                });
+            }
+            async function playContent(itemId) { 
+                const itemData = masterFeedItemsData.find(item => item.id === itemId);
+                if (!itemData || !itemData.fileUrl) { alert("Content not found."); return; }
+                if (itemData.type === 'video') await handlePreRollAd();
+                currentPlayingItemId = itemId; currentPlayingItemData = itemData;
+                if (itemData.type === 'video' && (itemData.durationInSeconds !== undefined && itemData.durationInSeconds !== null)) {
+                    setupMidRollSlots(itemId, itemData.durationInSeconds);
+                } else if (itemData.type === 'video') {
+                    videoAdSlots.currentVideoId = itemId; videoAdSlots.slots = []; videoAdSlots.nextSlotIndex = 0;
+                }
+                if (playerSection) playerSection.classList.add('active');
+                if (playerContentTitle) playerContentTitle.textContent = itemData.title;
+                if (playerContentMeta) playerContentMeta.textContent = `${itemData.channelName} • ${itemData.views || 0} views • ${formatTimestampForDisplay(itemData.createdAt || itemData.timestamp)}`;
+                if (mainVideoPlayer) { mainVideoPlayer.style.display = 'none'; mainVideoPlayer.pause(); mainVideoPlayer.src = "";}
+                if (mainImageViewerWrapper) mainImageViewerWrapper.style.display = 'none';
+                if (mainImageViewer) mainImageViewer.src = "";
+                if (itemData.type === 'video' && mainVideoPlayer) {
+                    mainVideoPlayer.src = itemData.fileUrl; mainVideoPlayer.style.display = 'block';
+                    mainVideoPlayer.load(); mainVideoPlayer.play().catch(e => console.error("Playback error:", e));
+                } else if (itemData.type === 'image' && mainImageViewer && mainImageViewerWrapper) {
+                    mainImageViewer.src = itemData.fileUrl; mainImageViewerWrapper.style.display = 'flex';
+                }
+                if(categoryHeaderHome) categoryHeaderHome.style.display = 'none';
+                allPageContents.forEach(p => p.classList.remove('active'));
+                const homePage = document.getElementById('homePageContent');
+                if (homePage) homePage.classList.add('active');
+
+                if (homeVideoFeed) { 
+                    homeVideoFeed.innerHTML = ''; 
+                    const newSuggestedTitle = document.createElement('h2');
+                    newSuggestedTitle.className = 'suggested-videos-title'; newSuggestedTitle.textContent = 'Up Next';
+                    homeVideoFeed.appendChild(newSuggestedTitle);
+                    const suggestedItems = masterFeedItemsData.filter(v => v.id !== itemId && v.fileUrl).slice(0, 10);
+                    populateFeed(homeVideoFeed, suggestedItems, true); 
+                    if (noResultsMessageHome) noResultsMessageHome.style.display = 'none'; 
+                }
+                window.scrollTo(0,0);
+                history.pushState({ playerActive: true, itemId: itemId, itemType: itemData.type }, itemData.title, `#item/${itemData.type}/${itemId}`);
+            }
+            function closePlayerAndReturn() {
+                if (isAdPlaying) finishAd(); 
+                videoAdSlots.currentVideoId = null; videoAdSlots.slots = []; videoAdSlots.nextSlotIndex = 0;
+                if (!playerSection || !playerSection.classList.contains('active')) return;
+                if(mainVideoPlayer) { mainVideoPlayer.pause(); mainVideoPlayer.src = ""; mainVideoPlayer.style.display = 'none'; }
+                if(mainImageViewer) mainImageViewer.src = "";
+                if(mainImageViewerWrapper) mainImageViewerWrapper.style.display = 'none';
+                playerSection.classList.remove('active'); currentPlayingItemId = null; currentPlayingItemData = null;
+                
+                if (isSearchActive && searchInputField && searchInputField.value.trim() !== "") {
+                    searchInputField.value = '';
+                    isSearchActive = false;
+                    if (clearSearchInputBtn) clearSearchInputBtn.style.display = 'none';
+                }
+
+                const targetPageId = previousPageIdBeforePlayer || 'homePageContent';
+                allPageContents.forEach(p => p.classList.toggle('active', p.id === targetPageId));
+                if(categoryHeaderHome) categoryHeaderHome.style.display = (targetPageId === 'homePageContent') ? 'block' : 'none';
+                
+                if (targetPageId === 'homePageContent') {
+                    const activeCategory = document.querySelector('#categoryHeaderHome .category-tab.active')?.dataset.category || "All";
+                    filterAndPopulateHomeFeed(activeCategory);
+                }
+                footerNavButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === targetPageId));
+                if (location.hash.startsWith("#item/")) history.replaceState({ pageActive: targetPageId }, `Page - ${targetPageId}`, `#page/${targetPageId}`);
+            }
+            function switchPage(pageId, updateHistory = true) {
+                if (isAdPlaying) finishAd();
+                if (searchOverlay && searchOverlay.classList.contains('active')) closeSearchUI(); 
+                
+                allPageContents.forEach(p => p.classList.remove('active'));
+                const pageToShow = document.getElementById(pageId); 
+                if (pageToShow) pageToShow.classList.add('active');
+                
+                if(categoryHeaderHome) categoryHeaderHome.style.display = (pageId === 'homePageContent' && playerSection && !playerSection.classList.contains('active')) ? 'block' : 'none';
+                
+                if (pageId === 'homePageContent') { 
+                    const activeCategory = document.querySelector('#categoryHeaderHome .category-tab.active')?.dataset.category || "All";
+                    filterAndPopulateHomeFeed(activeCategory);
+                }
+                window.scrollTo(0,0);
+                if (updateHistory && (!location.hash || !location.hash.includes(`page/${pageId}`))) history.pushState({ pageActive: pageId }, `Page - ${pageId}`, `#page/${pageId}`);
+            }
+            function openSearchUI() { 
+                if(searchOverlay) searchOverlay.classList.add('active'); 
+                if(appTopBar) appTopBar.style.zIndex = '990'; 
+                if(searchInputField) searchInputField.focus(); 
+                if (playerSection && playerSection.classList.contains('active') && mainVideoPlayer && mainVideoPlayer.style.display !== 'none' && !isAdPlaying) mainVideoPlayer.pause(); 
+                if (document.getElementById('homePageContent').classList.contains('active') && 
+                    (!playerSection || !playerSection.classList.contains('active'))) {
+                }
+            }
+            function closeSearchUI() { 
+                if(searchOverlay) searchOverlay.classList.remove('active'); 
+                if(appTopBar) appTopBar.style.zIndex = '1000'; 
+
+                if (searchInputField && (searchInputField.value.trim() !== "" || isSearchActive)) {
+                    searchInputField.value = '';
+                    searchInputField.dispatchEvent(new Event('input')); 
+                }
+
+                if (playerSection && playerSection.classList.contains('active') && mainVideoPlayer && mainVideoPlayer.style.display !== 'none' && mainVideoPlayer.paused && !isAdPlaying) mainVideoPlayer.play().catch(e => console.warn("Error resuming video after closing search:", e));
+            }
+            
+            function openUploadModal() {
+                if (isAdPlaying) finishAd();
+                if (playerSection && playerSection.classList.contains('active')) closePlayerAndReturn();
+                if (searchOverlay && searchOverlay.classList.contains('active')) closeSearchUI();
+                if (uploadModalOverlayGlobal) uploadModalOverlayGlobal.style.display = 'flex';
+                if (uploadStep1Global) uploadStep1Global.classList.add('active');
+                if (uploadStep2Global) uploadStep2Global.classList.remove('active');
+                if (uploadModalTitleGlobal) uploadModalTitleGlobal.textContent = "Select File";
+                if (nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.disabled = true;
+                selectedFileForUpload = null; selectedFileTypeForUpload = null; generatedVideoThumbnailDataUrl = null; 
+                if (selectedFileInfoGlobal) selectedFileInfoGlobal.textContent = "No file selected.";
+                if (videoPreviewUploadGlobal) { 
+                    if(videoPreviewUploadGlobal.src && videoPreviewUploadGlobal.src.startsWith('blob:')) URL.revokeObjectURL(videoPreviewUploadGlobal.src);
+                    videoPreviewUploadGlobal.src = ''; videoPreviewUploadGlobal.poster = ''; videoPreviewUploadGlobal.style.display = 'none';
+                }
+                if (imagePreviewUploadGlobal) { 
+                    if(imagePreviewUploadGlobal.src && imagePreviewUploadGlobal.src.startsWith('blob:')) URL.revokeObjectURL(imagePreviewUploadGlobal.src);
+                    imagePreviewUploadGlobal.src = ''; imagePreviewUploadGlobal.style.display = 'none';
+                }
+                if (hiddenFileInputGlobal) hiddenFileInputGlobal.value = ''; 
+                if (uploadDetailsFormGlobal) uploadDetailsFormGlobal.reset();
+                if (uploadStatusMessage) uploadStatusMessage.textContent = "";
+                if (finalUploadFileBtnGlobal) finalUploadFileBtnGlobal.disabled = false;
+            }
+            function formatVideoDuration(totalSeconds) {
+                if (isNaN(totalSeconds) || totalSeconds < 0) return "N/A";
+                return `${Math.floor(totalSeconds / 60)}:${Math.floor(totalSeconds % 60).toString().padStart(2, '0')}`; 
+            }
+            function filterAndPopulateHomeFeed(category) {
+                let itemsToFilter = [...masterFeedItemsData]; 
+                if (category === "All" || !category) {
+                    currentDisplayedFeedItems = itemsToFilter;
+                } else if (category === "Video" || category === "Image") {
+                    currentDisplayedFeedItems = itemsToFilter.filter(item => item.type === category.toLowerCase());
+                } else {
+                    currentDisplayedFeedItems = itemsToFilter.filter(item => 
+                        (item.category && item.category.toLowerCase() === category.toLowerCase()) || 
+                        (item.allCategories && item.allCategories.map(c=>c.toLowerCase()).includes(category.toLowerCase()))
+                    );
+                }
+                
+                if (homeVideoFeed) homeVideoFeed.innerHTML = ''; 
+                populateFeed(homeVideoFeed, currentDisplayedFeedItems, false); 
+
+                if (noResultsMessageHome) {
+                    if (currentDisplayedFeedItems.length === 0) {
+                        noResultsMessageHome.textContent = "No items in this category.";
+                        noResultsMessageHome.style.display = 'block';
+                    } else {
+                        noResultsMessageHome.style.display = 'none';
+                    }
+                }
+            }
+            function tryJsonParse(str) { try { return JSON.parse(str); } catch (e) { return null; } }
+            async function saveFeedItemToFirebase(itemData) { 
+                if (!FIREBASE_DB_INSTANCE || !firebaseAppInitialized) {
+                    alert("Database connection error. Could not save item."); return null; 
+                }
+                goOnline(FIREBASE_DB_INSTANCE);
+                try {
+                    const itemRef = firebaseRefGlobal(FIREBASE_DB_INSTANCE, 'feedItems');
+                    const newItemRef = firebasePush(itemRef);
+                    await firebaseSet(newItemRef, itemData);
+                    return newItemRef.key;
+                } catch (error) { 
+                    alert(`Failed to save item metadata: ${error.message}.`); throw error; 
+                }
+            }
+            async function loadAndProcessFeedFromFirebaseWithListener() { 
+                if (!FIREBASE_DB_INSTANCE || !firebaseAppInitialized) return; 
+                if(noResultsMessageHome) noResultsMessageHome.textContent = "Loading feed..."; noResultsMessageHome.style.display = 'block';
+                goOnline(FIREBASE_DB_INSTANCE);
+                const feedItemsFBRef = firebaseRefGlobal(FIREBASE_DB_INSTANCE, 'feedItems');
+                const feedQueryFB = firebaseQuery(feedItemsFBRef, firebaseOrderByChild('createdAt'));
+                onValue(feedQueryFB, (snapshot) => {
+                    const feedData = snapshot.val(); let processedFeed = [];
+                    if (feedData) {
+                        processedFeed = Object.keys(feedData).map(key => ({ id: key, ...feedData[key] })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); 
+                    }
+                    masterFeedItemsData = processedFeed;
+                    localStorage.setItem("youtubeCloneFeed_firebase_cache_v1", JSON.stringify(masterFeedItemsData));
+                    
+                    if (isSearchActive && searchInputField && searchInputField.value.trim() !== "") {
+                        searchInputField.dispatchEvent(new Event('input'));
+                    } else if (document.getElementById('homePageContent').classList.contains('active') && playerSection && !playerSection.classList.contains('active')) {
+                        const activeCategory = document.querySelector('#categoryHeaderHome .category-tab.active')?.dataset.category || "All";
+                        filterAndPopulateHomeFeed(activeCategory);
+                    } else if (playerSection && playerSection.classList.contains('active') && homeVideoFeed) {
+                        const suggestedItems = masterFeedItemsData.filter(v => v.id !== currentPlayingItemId && v.fileUrl).slice(0, 10);
+                        const suggestedTitleEl = homeVideoFeed.querySelector('.suggested-videos-title') || homeVideoFeed.querySelector('h2'); 
+                        homeVideoFeed.innerHTML = ''; 
+                        if(suggestedTitleEl && suggestedTitleEl.textContent.toLowerCase().includes('up next')) { 
+                            homeVideoFeed.appendChild(suggestedTitleEl);
+                        } else { 
+                            const newTitle = document.createElement('h2'); newTitle.className = 'suggested-videos-title'; newTitle.textContent = 'Up Next'; homeVideoFeed.appendChild(newTitle); 
+                        }
+                        populateFeed(homeVideoFeed, suggestedItems, true); 
+                        if (noResultsMessageHome) noResultsMessageHome.style.display = 'none';
+                    }
+                    
+                    if (!isSearchActive) {
+                        if (masterFeedItemsData.length === 0 && noResultsMessageHome && noResultsMessageHome.style.display !== 'none' ) noResultsMessageHome.textContent = "No content yet.";
+                        else if (masterFeedItemsData.length > 0 && noResultsMessageHome && currentDisplayedFeedItems.length > 0 && document.getElementById('homePageContent').classList.contains('active')) noResultsMessageHome.style.display = 'none';
+                    }
+
+                }, (error) => {
+                    if(noResultsMessageHome) noResultsMessageHome.textContent = "Error loading live feed.";
+                    if (error.message && error.message.toLowerCase().includes("client is offline") && masterFeedItemsData.length === 0) {
+                        const localData = localStorage.getItem("youtubeCloneFeed_firebase_cache_v1");
+                        masterFeedItemsData = localData ? (tryJsonParse(localData) || []) : [];
+                        if (masterFeedItemsData.length > 0 && document.getElementById('homePageContent').classList.contains('active') && playerSection && !playerSection.classList.contains('active') && !isSearchActive) {
+                            const activeCategory = document.querySelector('#categoryHeaderHome .category-tab.active')?.dataset.category || "All";
+                            filterAndPopulateHomeFeed(activeCategory);
+                        }
+                    }
+                });
+            }
+            async function deleteFeedItemFromFirebase(itemId) { 
+                if (!FIREBASE_DB_INSTANCE || !firebaseAppInitialized) {
+                    console.error("Firebase DB not initialized. Cannot delete item.");
+                    throw new Error("Database connection error.");
+                }
+                goOnline(FIREBASE_DB_INSTANCE);
+                try {
+                    const itemRef = firebaseRefGlobal(FIREBASE_DB_INSTANCE, `feedItems/${itemId}`);
+                    await firebaseDbRemove(itemRef);
+                    console.log(`Item ${itemId} deleted from Firebase.`);
+                } catch (error) { 
+                    console.error(`Failed to delete item ${itemId} from Firebase:`, error);
+                    throw error; 
+                }
+            }
+            
+            function setupUIEventListeners() {
+              try {
+                console.log("Attempting to set up UI event listeners...");
+                if (searchButtonAppTop) searchButtonAppTop.addEventListener('click', openSearchUI); 
+                if (closeSearchOverlayBtn) closeSearchOverlayBtn.addEventListener('click', closeSearchUI);
+                
+                if (searchInputField) {
+                    searchInputField.addEventListener('input', () => {
+                        const searchTerm = searchInputField.value.trim().toLowerCase();
+                        if (clearSearchInputBtn) clearSearchInputBtn.style.display = searchTerm ? 'block' : 'none';
+
+                        if (!searchTerm) {
+                            isSearchActive = false;
+                            if (playerSection && playerSection.classList.contains('active')) {
+                                homeVideoFeed.innerHTML = ''; 
+                                const newTitle = document.createElement('h2'); 
+                                newTitle.className = 'suggested-videos-title'; 
+                                newTitle.textContent = 'Up Next'; 
+                                homeVideoFeed.appendChild(newTitle); 
+                                const suggestedItems = masterFeedItemsData.filter(v => v.id !== currentPlayingItemId && v.fileUrl).slice(0, 10);
+                                populateFeed(homeVideoFeed, suggestedItems, true);
+                                if (noResultsMessageHome) noResultsMessageHome.style.display = 'none';
+                            } else {
+                                const activeCategoryButton = document.querySelector('#categoryHeaderHome .category-tab.active');
+                                const activeCategory = activeCategoryButton ? activeCategoryButton.dataset.category : "All";
+                                filterAndPopulateHomeFeed(activeCategory); 
+                                if (categoryHeaderHome) categoryHeaderHome.style.display = 'block';
+                            }
+                            return;
+                        }
+
+                        isSearchActive = true;
+                        const searchResults = masterFeedItemsData.filter(item => {
+                            const titleMatch = item.title && item.title.toLowerCase().includes(searchTerm);
+                            const descriptionMatch = item.description && item.description.toLowerCase().includes(searchTerm);
+                            const channelNameMatch = item.channelName && item.channelName.toLowerCase().includes(searchTerm);
+                            const categoryMatch = item.category && item.category.toLowerCase().includes(searchTerm);
+                            const allCategoriesMatch = item.allCategories && item.allCategories.some(cat => cat.toLowerCase().includes(searchTerm));
+                            return titleMatch || descriptionMatch || channelNameMatch || categoryMatch || allCategoriesMatch;
+                        });
+                        
+                        currentDisplayedFeedItems = searchResults; 
+
+                        if (homeVideoFeed) homeVideoFeed.innerHTML = ''; 
+
+                        if (playerSection && playerSection.classList.contains('active')) {
+                            const searchResultsTitle = document.createElement('h2');
+                            searchResultsTitle.className = 'suggested-videos-title'; 
+                            searchResultsTitle.textContent = `Results for: "${searchInputField.value.trim()}"`;
+                            if (homeVideoFeed) homeVideoFeed.appendChild(searchResultsTitle);
+                        } else {
+                             if(categoryHeaderHome) categoryHeaderHome.style.display = 'none';
+                        }
+                        
+                        populateFeed(homeVideoFeed, searchResults, false); 
+
+                        if (noResultsMessageHome) {
+                            if (searchResults.length === 0) {
+                                noResultsMessageHome.textContent = `No results for "${searchInputField.value.trim()}".`;
+                                noResultsMessageHome.style.display = 'block';
+                                if (playerSection && playerSection.classList.contains('active') && homeVideoFeed.children.length > 0) {
+                                } else if (playerSection && playerSection.classList.contains('active')){
+                                    homeVideoFeed.appendChild(noResultsMessageHome); 
+                                }
+
+                            } else {
+                                noResultsMessageHome.style.display = 'none';
+                            }
+                        }
+                    });
+                }
+                if (clearSearchInputBtn) clearSearchInputBtn.addEventListener('click', () => { 
+                    searchInputField.value = ''; 
+                    searchInputField.dispatchEvent(new Event('input')); 
+                    searchInputField.focus(); 
+                });
+
+                if (micSearchOverlayBtn) micSearchOverlayBtn.addEventListener('click', () => alert('Voice search not implemented.'));
+
+                if (footerNavButtons && footerNavButtons.length > 0) {
+                    footerNavButtons.forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (button.id === 'openUploadModalBtnGlobal' || button.classList.contains('create-button')) { openUploadModal(); return; }
+                            const targetPage = button.dataset.page; if (!targetPage) return;
+                            if (playerSection && playerSection.classList.contains('active')) {
+                                closePlayerAndReturn(); 
+                                setTimeout(() => { footerNavButtons.forEach(btn => btn.classList.remove('active')); button.classList.add('active'); switchPage(targetPage); }, 0);
+                            } else { footerNavButtons.forEach(btn => btn.classList.remove('active')); button.classList.add('active'); switchPage(targetPage); }
+                        });
+                    });
+                }
+                
+                if (closeUploadModalBtnGlobal) closeUploadModalBtnGlobal.addEventListener('click', () => {uploadModalOverlayGlobal.style.display = 'none'});
+                if (cancelUploadStep1BtnGlobal) cancelUploadStep1BtnGlobal.addEventListener('click', () => {uploadModalOverlayGlobal.style.display = 'none'});
+                if (triggerFileInputBtnGlobal) triggerFileInputBtnGlobal.addEventListener('click', () => { if(hiddenFileInputGlobal) hiddenFileInputGlobal.click()});
+                
+                if (hiddenFileInputGlobal) hiddenFileInputGlobal.addEventListener('change', (event) => { 
+                    const file = event.target.files[0];
+                    if (!file) { selectedFileForUpload = null; selectedFileTypeForUpload = null; if(selectedFileInfoGlobal) selectedFileInfoGlobal.textContent = "No file selected."; if(nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.disabled = true; return; }
+                    
+                    if (videoPreviewUploadGlobal && videoPreviewUploadGlobal.src && videoPreviewUploadGlobal.src.startsWith('blob:')) URL.revokeObjectURL(videoPreviewUploadGlobal.src);
+                    if (videoPreviewUploadGlobal) { videoPreviewUploadGlobal.src = ''; videoPreviewUploadGlobal.poster = ''; videoPreviewUploadGlobal.style.display = 'none'; }
+                    if (imagePreviewUploadGlobal && imagePreviewUploadGlobal.src && imagePreviewUploadGlobal.src.startsWith('blob:')) URL.revokeObjectURL(imagePreviewUploadGlobal.src);
+                    if (imagePreviewUploadGlobal) { imagePreviewUploadGlobal.src = ''; imagePreviewUploadGlobal.style.display = 'none';}
+                    generatedVideoThumbnailDataUrl = null; 
+                    if(uploadStatusMessage) uploadStatusMessage.textContent = "";
+
+                    if (file.type.startsWith('video/') && file.size > MAX_TELEGRAM_GETFILE_SIZE_BYTES) {
+                        if(selectedFileInfoGlobal) {selectedFileInfoGlobal.textContent = `Error: Video too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Max 20MB.`; selectedFileInfoGlobal.style.color = 'red';}
+                        if(nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.disabled = true;
+                        selectedFileForUpload = null; selectedFileTypeForUpload = null; event.target.value = ''; return;
+                    }
+                    if(selectedFileInfoGlobal) selectedFileInfoGlobal.style.color = '';
+
+                    selectedFileForUpload = file;
+                    if(selectedFileInfoGlobal) selectedFileInfoGlobal.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    if(nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.disabled = false;
+                    const objectURL = URL.createObjectURL(file);
+
+                    if (file.type.startsWith('video/') && videoPreviewUploadGlobal) {
+                        selectedFileTypeForUpload = 'video'; videoPreviewUploadGlobal.style.display = 'block';
+                        const oldLoadHandler = videoPreviewUploadGlobal._videoLoadHandler; if (oldLoadHandler) videoPreviewUploadGlobal.removeEventListener('loadeddata', oldLoadHandler);
+                        const oldSeekedHandler = videoPreviewUploadGlobal._videoSeekedHandler; if (oldSeekedHandler) videoPreviewUploadGlobal.removeEventListener('seeked', oldSeekedHandler);
+                        videoPreviewUploadGlobal._videoLoadHandler = () => {
+                            const seekTime = videoPreviewUploadGlobal.duration > 1 ? Math.min(1, videoPreviewUploadGlobal.duration * 0.05) : (videoPreviewUploadGlobal.duration > 0 ? videoPreviewUploadGlobal.duration * 0.1 : 0);
+                            if (isFinite(seekTime) && isFinite(videoPreviewUploadGlobal.duration)) videoPreviewUploadGlobal.currentTime = seekTime;
+                        };
+                        videoPreviewUploadGlobal._videoSeekedHandler = async () => {
+                            if (uploadStatusMessage) uploadStatusMessage.textContent = "Generating thumbnail...";
+                            try {
+                                const thumbnailUrl = await generateThumbnailFromVideo(videoPreviewUploadGlobal);
+                                generatedVideoThumbnailDataUrl = thumbnailUrl; videoPreviewUploadGlobal.poster = thumbnailUrl; 
+                                if (uploadStatusMessage) uploadStatusMessage.textContent = "Thumbnail ready.";
+                            } catch (error) {
+                                generatedVideoThumbnailDataUrl = null; videoPreviewUploadGlobal.poster = '';
+                                if (uploadStatusMessage) uploadStatusMessage.textContent = "Thumbnail generation failed.";
+                            }
+                        };
+                        videoPreviewUploadGlobal.addEventListener('loadeddata', videoPreviewUploadGlobal._videoLoadHandler);
+                        videoPreviewUploadGlobal.addEventListener('seeked', videoPreviewUploadGlobal._videoSeekedHandler);
+                        videoPreviewUploadGlobal.src = objectURL;
+                    } else if (file.type.startsWith('image/') && imagePreviewUploadGlobal) {
+                        selectedFileTypeForUpload = 'image'; imagePreviewUploadGlobal.src = objectURL; imagePreviewUploadGlobal.style.display = 'block';
+                    } else {
+                        selectedFileForUpload = null; selectedFileTypeForUpload = null;
+                        if(selectedFileInfoGlobal) selectedFileInfoGlobal.textContent = "Invalid file type.";
+                        if(nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.disabled = true;
+                        URL.revokeObjectURL(objectURL);
+                    }
+                }); 
+                if (nextToUploadStep2BtnGlobal) nextToUploadStep2BtnGlobal.addEventListener('click', () => { 
+                    if (!selectedFileForUpload) { alert("Please select a file first."); return; }
+                    if(uploadStep1Global) uploadStep1Global.classList.remove('active'); 
+                    if(uploadStep2Global) uploadStep2Global.classList.add('active');
+                    if(uploadModalTitleGlobal) uploadModalTitleGlobal.textContent = selectedFileTypeForUpload === 'video' ? "Video Details" : "Image Details";
+                    const titleInput = document.getElementById('uploadFileTitleGlobal');
+                    if(titleInput) titleInput.placeholder = selectedFileTypeForUpload === 'video' ? "Add a video title" : "Add an image title";
+                });
+                if (backToUploadStep1BtnGlobal) backToUploadStep1BtnGlobal.addEventListener('click', () => { 
+                    if(uploadStep2Global) uploadStep2Global.classList.remove('active'); 
+                    if(uploadStep1Global) uploadStep1Global.classList.add('active');
+                    if(uploadModalTitleGlobal) uploadModalTitleGlobal.textContent = "Select File";
+                });
+                
+                if (finalUploadFileBtnGlobal) {
+                    finalUploadFileBtnGlobal.addEventListener('click', async () => { 
+                        try {
+                            const title = document.getElementById('uploadFileTitleGlobal')?.value.trim();
+                            if (!title) { alert("Title is required."); return; }
+                            if (!selectedFileForUpload) { alert("No file selected."); return; }
+                            if (selectedFileTypeForUpload === 'video' && selectedFileForUpload.size > MAX_TELEGRAM_GETFILE_SIZE_BYTES) {
+                                alert(`Video file too large. Max 20MB.`); if (uploadStatusMessage) uploadStatusMessage.textContent = "Video too large."; return;
+                            }
+                            finalUploadFileBtnGlobal.disabled = true; if(uploadStatusMessage) uploadStatusMessage.textContent = "Preparing upload...";
+                            const fileToUpload = selectedFileForUpload; const fileType = selectedFileTypeForUpload;
+                            if(uploadStatusMessage) uploadStatusMessage.textContent = `Uploading ${fileType}...`;
+                            const uploadedFileId = await uploadFileToTelegram(fileToUpload, title, (p,m) => { if(uploadStatusMessage) uploadStatusMessage.textContent = m || `Uploading: ${p}%`; });
+                            if (!uploadedFileId) throw new Error("Telegram upload: no file ID.");
+                            if(uploadStatusMessage) uploadStatusMessage.textContent = "Getting URL...";
+                            const fileUrl = await getFileURLFromTelegram(uploadedFileId);
+                            if (!fileUrl) throw new Error("Telegram: no file URL.");
+                            let durationStr = "N/A"; let durationInSecs = null; 
+                            if (fileType === 'video' && videoPreviewUploadGlobal && videoPreviewUploadGlobal.duration && isFinite(videoPreviewUploadGlobal.duration)) {
+                                durationInSecs = Math.round(videoPreviewUploadGlobal.duration); durationStr = formatVideoDuration(durationInSecs);
+                            }
+                            const categoryInputStr = document.getElementById('uploadFileCategoryGlobal')?.value.trim();
+                            const allCategoriesArray = categoryInputStr ? categoryInputStr.split(',').map(c => c.trim()).filter(c => c) : [];
+                            const primaryCategory = allCategoriesArray.length > 0 ? allCategoriesArray[0] : (fileType === 'video' ? 'Video' : 'Image');
+                            let finalThumbnailSrc = `https://via.placeholder.com/640x360/1c1c1c/ffffff?text=${encodeURIComponent(title)}`; 
+                            if (fileType === 'video' && generatedVideoThumbnailDataUrl) finalThumbnailSrc = generatedVideoThumbnailDataUrl;
+                            else if (fileType === 'image') finalThumbnailSrc = fileUrl; 
+                            const newItemData = { type: fileType, title: title, description: document.getElementById('uploadFileDescriptionGlobal')?.value || '', channelName: "TG Uploads", views: 0, duration: durationStr, durationInSeconds: durationInSecs, thumbnailSrc: finalThumbnailSrc, fileUrl: fileUrl, channelIconSrc: 'https://via.placeholder.com/36/3ea6ff/fff?text=TU', category: primaryCategory, allCategories: allCategoriesArray.length > 0 ? allCategoriesArray : [primaryCategory], originalFileId: uploadedFileId, createdAt: firebaseServerTimestamp() };
+                            if(uploadStatusMessage) uploadStatusMessage.textContent = "Saving metadata...";
+                            const newItemId = await saveFeedItemToFirebase(newItemData);
+                            if (newItemId) { if(uploadModalOverlayGlobal) uploadModalOverlayGlobal.style.display = 'none'; alert(`${fileType.charAt(0).toUpperCase() + fileType.slice(1)} "${title}" uploaded!`);}
+                            else { if(uploadStatusMessage) uploadStatusMessage.textContent = "Failed to save metadata."; }
+                        } catch (error) { 
+                            if(uploadStatusMessage) uploadStatusMessage.textContent = `Upload failed: ${error.message}`;
+                            alert(`Upload error: ${error.message}.`);
+                        } finally { if(finalUploadFileBtnGlobal) finalUploadFileBtnGlobal.disabled = false; }
+                    });
+                }
+
+                if (deleteCurrentContentBtn) {
+                    deleteCurrentContentBtn.addEventListener('click', () => { 
+                        if (!currentPlayingItemId) {
+                            alert("No content selected to delete.");
+                            return;
+                        } 
+                        if(deletePasswordInput) deletePasswordInput.value = ''; 
+                        if(deletePasswordPromptOverlay) deletePasswordPromptOverlay.style.display = 'flex'; 
+                    });
+                }
+
+                if (confirmDeleteVideoBtn) {
+                    confirmDeleteVideoBtn.addEventListener('click', async () => {
+                        if (!currentPlayingItemId) {
+                            alert("Error: No item ID to delete.");
+                            if(deletePasswordPromptOverlay) deletePasswordPromptOverlay.style.display = 'none';
+                            return;
+                        }
+                        const enteredPassword = deletePasswordInput.value;
+                        if (enteredPassword === CORRECT_DELETE_PASSWORD) {
+                            try {
+                                const itemToDeleteTitle = currentPlayingItemData ? currentPlayingItemData.title : "Selected content";
+                                await deleteFeedItemFromFirebase(currentPlayingItemId);
+                                
+                                if(deletePasswordPromptOverlay) deletePasswordPromptOverlay.style.display = 'none';
+                                deletePasswordInput.value = ''; 
+                                
+                                closePlayerAndReturn(); 
+                                
+                                alert(`"${itemToDeleteTitle}" has been deleted.`);
+                            } catch (error) {
+                                alert(`Failed to delete content: ${error.message}`);
+                                console.error("Deletion error:", error);
+                                if(deletePasswordPromptOverlay) deletePasswordPromptOverlay.style.display = 'none';
+                            }
+                        } else {
+                            alert("Incorrect password. Please try again.");
+                            deletePasswordInput.value = ''; 
+                            deletePasswordInput.focus();
+                        }
+                    });
+                }
+                if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => { 
+                    if(deletePasswordPromptOverlay) deletePasswordPromptOverlay.style.display = 'none'; 
+                    deletePasswordInput.value = ''; 
+                });
+                
+                if (categoryTabsContainer) {
+                    categoryTabsContainer.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('category-tab')) {
+                            const newCategory = e.target.dataset.category;
+                
+                            const previouslyActiveTab = categoryTabsContainer.querySelector('.category-tab.active');
+                            if (previouslyActiveTab) previouslyActiveTab.classList.remove('active');
+                            e.target.classList.add('active');
+                
+                            if (isSearchActive && searchInputField && searchInputField.value.trim() !== "") {
+                                searchInputField.value = ""; 
+                                if (clearSearchInputBtn) clearSearchInputBtn.style.display = 'none';
+                                isSearchActive = false; 
+                            }
+                            filterAndPopulateHomeFeed(newCategory); 
+                        }
+                    });
+                }
+
+                window.addEventListener('popstate', async (event) => {
+                    if (isAdPlaying) finishAd(); 
+                    const state = event.state;
+                    if (state) {
+                        if (state.playerActive && state.itemId) {
+                            if (!(playerSection && playerSection.classList.contains('active') && currentPlayingItemId === state.itemId)) await playContent(state.itemId); 
+                        } else if (state.pageActive) {
+                            if (playerSection && playerSection.classList.contains('active')) closePlayerAndReturn();
+                            switchPage(state.pageActive, false);
+                            footerNavButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === state.pageActive));
+                        }
+                    } else { 
+                        if (playerSection && playerSection.classList.contains('active')) closePlayerAndReturn();
+                        switchPage('homePageContent', false);
+                        footerNavButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === 'homePageContent'));
+                    }
+                });
+                console.log("All UI Event listeners setup process completed.");
+              } catch (e) {
+                console.error("Error during setupUIEventListeners:", e);
+              }
+            }
+
+            async function initializeApp() {
+                console.log("Initializing app (v12 - Search & Delete Fix)...");
+                if (!firebaseAppInitialized || !FIREBASE_DB_INSTANCE) {
+                    if(noResultsMessageHome) { noResultsMessageHome.textContent = "Database connection failed."; noResultsMessageHome.style.display = 'block';}
+                    setupUIEventListeners(); return; 
+                }
+                const connectedRef = firebaseRefGlobal(FIREBASE_DB_INSTANCE, ".info/connected");
+                onValue(connectedRef, (snap) => {
+                  if (snap.val() === true) { if (noResultsMessageHome && noResultsMessageHome.textContent.includes("Connecting")) noResultsMessageHome.textContent = "Loading feed..."; }
+                  else { goOnline(FIREBASE_DB_INSTANCE); if (noResultsMessageHome) { noResultsMessageHome.textContent = "Connecting..."; noResultsMessageHome.style.display = 'block';}}
+                });
+                try {
+                    goOnline(FIREBASE_DB_INSTANCE); await new Promise(resolve => setTimeout(resolve, 200)); 
+                    const feedItemsFBRef = firebaseRefGlobal(FIREBASE_DB_INSTANCE, 'feedItems');
+                    const initialQuery = firebaseQuery(feedItemsFBRef, firebaseOrderByChild('createdAt'));
+                    const initialSnapshot = await firebaseGet(initialQuery);
+                    if (initialSnapshot.exists()) {
+                        masterFeedItemsData = Object.keys(initialSnapshot.val()).map(key => ({ id: key, ...initialSnapshot.val()[key] })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                        localStorage.setItem("youtubeCloneFeed_firebase_cache_v1", JSON.stringify(masterFeedItemsData));
+                    } else {
+                         const localData = localStorage.getItem("youtubeCloneFeed_firebase_cache_v1");
+                         masterFeedItemsData = localData ? (tryJsonParse(localData) || []) : [];
+                    }
+                    await loadAndProcessFeedFromFirebaseWithListener(); 
+                } catch (error) {
+                    const localData = localStorage.getItem("youtubeCloneFeed_firebase_cache_v1");
+                    masterFeedItemsData = localData ? (tryJsonParse(localData) || []) : [];
+                     if (masterFeedItemsData.length > 0 && noResultsMessageHome) noResultsMessageHome.style.display = 'none'; 
+                     else if (noResultsMessageHome) { noResultsMessageHome.textContent = "Failed to load. Cache empty."; noResultsMessageHome.style.display = 'block';}
+                     if (document.getElementById('homePageContent').classList.contains('active') && playerSection && !playerSection.classList.contains('active')) {
+                        const activeCategory = document.querySelector('#categoryHeaderHome .category-tab.active')?.dataset.category || "All";
+                        filterAndPopulateHomeFeed(activeCategory); 
+                    }
+                }
+                setupUIEventListeners(); 
+                const initialHash = window.location.hash.substring(1);
+                let targetPageId = 'homePageContent'; let targetItemId = null;
+                if (initialHash) {
+                    const parts = initialHash.split('/');
+                    if (parts[0] === 'item' && parts[1] && parts[2]) targetItemId = parts[2];
+                    else if (parts[0] === 'page' && parts[1]) targetPageId = document.getElementById(parts[1]) ? parts[1] : 'homePageContent';
+                }
+                footerNavButtons.forEach(btn => { if (btn.dataset.page) btn.classList.toggle('active', btn.dataset.page === targetPageId && !targetItemId)});
+                if (targetItemId) {
+                    if(allPageContents) allPageContents.forEach(p => p.classList.remove('active'));
+                    const homePg = document.getElementById('homePageContent');
+                    if(homePg) homePg.classList.add('active');
+                    const itemToPlay = masterFeedItemsData.find(item => item.id === targetItemId);
+                    if (itemToPlay) await playContent(targetItemId); 
+                    else switchPage(targetPageId, false);
+                } else {
+                    switchPage(targetPageId, false); 
+                    if (!location.hash || !location.hash.includes(`page/${targetPageId}`)) history.replaceState({ pageActive: targetPageId }, `Page - ${targetPageId}`, `#page/${targetPageId}`);
+                }
+                const homeContentPage = document.getElementById('homePageContent');
+                if (masterFeedItemsData.length === 0 && noResultsMessageHome && homeContentPage && homeContentPage.classList.contains('active') && !noResultsMessageHome.textContent.includes("Connecting")) {
+                     noResultsMessageHome.textContent = "No content yet."; noResultsMessageHome.style.display = 'block';
+                } else if (currentDisplayedFeedItems.length > 0 && noResultsMessageHome && homeContentPage && homeContentPage.classList.contains('active')) {
+                    noResultsMessageHome.style.display = 'none';
+                }
+                console.log("Application Initialized (v12 - Search & Delete Fix).");
+            }
+            
+            if (firebaseAppInitialized) {
+                await initializeApp();
+            } else {
+                setupUIEventListeners(); 
+                if(noResultsMessageHome) { noResultsMessageHome.textContent = "Critical Error: Database connection failed."; noResultsMessageHome.style.display = 'block';}
+            }
+          } catch (domError) {
+            console.error("CRITICAL ERROR during DOMContentLoaded or initial app setup:", domError);
+            alert("A critical error occurred. Please refresh.");
+          }
+        });
+    </script>
+
+    <style>
+        /* CSS - unchanged */
+        body {font-family: 'Roboto', Arial, sans-serif; margin: 0; background-color: #0f0f0f; color: #fff; padding-top: 65px; padding-bottom: 60px; overflow-x: hidden;}
+        .app-container { max-width: 100%; margin: 0 auto; }
+        .status-bar-top { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; background-color: #0f0f0f; font-size: 12px; position: fixed; top: 0; left: 0; right: 0; z-index: 1001; height: 25px; }
+        .app-top-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background-color: #0f0f0f; position: fixed; top: 25px; left: 0; right: 0; z-index: 1000; height: 40px; }
+        .app-top-bar .youtube-logo { display: flex; align-items: center; font-size: 16px; font-weight: bold; color: #fff; user-select: none; }
+        .app-top-bar .youtube-logo .logo-emoji { font-size: 22px; margin-right: 5px; line-height: 1; vertical-align: middle; }
+        .app-top-bar .youtube-logo .logo-text { vertical-align: middle; }
+        .app-top-bar .top-icons { display: flex; align-items: center; }
+        .app-top-bar .top-icon-btn { background: none; border: none; color: #fff; font-size: 22px; margin-left: 18px; cursor: pointer; padding: 5px; }
+        .search-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 65px; background-color: #0f0f0f; z-index: 1002; display: none; align-items: center; padding: 0 10px; box-sizing: border-box; border-bottom: 1px solid #303030; }
+        .search-overlay.active { display: flex; }
+        .search-overlay .back-arrow-btn { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 5px; margin-right: 10px; }
+        .search-overlay .search-input-container { flex-grow: 1; position: relative; }
+        .search-overlay input[type="search"] { width: 100%; padding: 8px 35px 8px 15px; background-color: #222; border: 1px solid #333; border-radius: 20px; color: #fff; font-size: 16px; box-sizing: border-box; }
+        .search-overlay .clear-search-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; display: none; }
+        .search-overlay .mic-search-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 5px; margin-left: 10px; }
+        .page-content { display: none; } .page-content.active { display: block; }
+        .video-player-section { background-color: #000; position: sticky; top: 65px; z-index: 999; display: none; } .video-player-section.active { display: block; }
+        .video-player-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; background-color: #000; }
+        .video-player-wrapper video { width: 100%; height: 100%; display: block; }
+        .image-viewer-wrapper { width: 100%; background-color: #000; display:flex; justify-content:center; align-items:center; aspect-ratio: 16 / 9;}
+        .image-viewer-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .current-video-details-area { padding: 12px; background-color: #0f0f0f; border-bottom: 1px solid #222222; }
+        .current-video-title-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;}
+        .current-video-title { font-size: 18px; font-weight: 500; margin: 0; flex-grow: 1; }
+        .delete-video-btn { background: none; border: none; color: #ff4d4d; font-size: 20px; cursor: pointer; padding: 5px; margin-left: 10px; }
+        .current-video-meta { font-size: 13px; color: #aaa; margin-bottom: 10px; }
+        #homePageContent .main-header-categories { position: sticky; top: 65px; z-index: 990; background-color: #0f0f0f; border-bottom: 1px solid #222; padding: 10px 0; }
+        .category-tabs { display: flex; overflow-x: auto; padding: 0 10px; white-space: nowrap; } .category-tabs::-webkit-scrollbar { height: 0px; }
+        .category-tab { background-color: #272727; color: #f1f1f1; border: 1px solid #404040; border-radius: 18px; padding: 7px 14px; margin-right: 8px; font-size: 14px; font-weight: 500; cursor: pointer; flex-shrink: 0; }
+        .category-tab.active { background-color: #fff; color: #0f0f0f; border-color: #fff; }
+        .video-feed { padding-top: 10px; }
+        .video-item { margin-bottom: 20px; background-color: #0f0f0f; display: block; cursor: pointer; }
+        .video-item.suggested { display: flex; gap: 10px; padding: 0 10px 10px 10px; }
+        .video-item.suggested .thumbnail-container { width: 160px; flex-shrink: 0; } .video-item.suggested .thumbnail-container img{ border-radius: 8px; }
+        .video-item.suggested .video-info { padding: 0; align-items: flex-start; } .video-item.suggested .video-title { font-size: 14px; -webkit-line-clamp: 2; }
+        .video-item.suggested .video-meta { font-size: 12px; } .video-item.suggested .more-options-button { display: none; }
+        .thumbnail-container { position: relative; width: 100%; } .thumbnail-container img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; background-color: #202020;}
+        .video-duration { position: absolute; bottom: 8px; right: 8px; background-color: rgba(0, 0, 0, 0.85); color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .video-info { display: flex; padding: 12px 10px; align-items: flex-start; }
+        .channel-icon { width: 36px; height: 36px; border-radius: 50%; margin-right: 12px; object-fit: cover; flex-shrink: 0; }
+        .video-details { flex-grow: 1; overflow: hidden; }
+        .video-title { font-size: 15px; font-weight: 500; color: #f1f1f1; margin: 0 0 6px 0; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+        .video-meta { font-size: 12px; color: #aaa; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .more-options-button { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 0 0 8px; align-self: flex-start; line-height: 1; }
+        .suggested-videos-title { font-size: 16px; font-weight: 500; padding: 15px 12px 5px 12px; margin: 0; background-color: #0f0f0f; }
+        .no-results-message { text-align: center; padding: 20px; font-size: 16px; color: #aaa; display: none; }
+        .password-prompt-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 2001; }
+        .password-prompt-content { background-color: #222; padding: 25px; border-radius: 10px; width: 80%; max-width: 350px; text-align: center; }
+        .password-prompt-content h4 { margin-top: 0; margin-bottom: 15px; font-size: 16px; }
+        .password-prompt-content input[type="password"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 15px; border: 1px solid #444; background-color: #111; color: #fff; border-radius: 5px; font-size: 15px; }
+        .password-prompt-actions button { padding: 10px 15px; border: none; border-radius: 5px; font-size: 14px; font-weight: 500; cursor: pointer; margin: 0 5px; }
+        .password-prompt-actions .confirm-delete-btn { background-color: #e60000; color: white; } .password-prompt-actions .cancel-delete-btn { background-color: #555; color: white; }
+        .upload-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .upload-modal-content { background-color: #181818; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; position: relative; }
+        .upload-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #303030; padding-bottom: 10px; }
+        .upload-modal-header h3 { margin: 0; font-size: 18px; } .upload-modal-close-btn { background: none; border: none; color: #aaa; font-size: 24px; cursor: pointer; }
+        .upload-step { display: none; } .upload-step.active { display: block; }
+        #uploadStep1Global { text-align: center; }
+        .select-file-button { background-color: #3ea6ff; color: #fff; border: none; padding: 12px 25px; border-radius: 20px; font-size: 16px; font-weight: 500; cursor: pointer; margin: 20px 0; display: inline-block; }
+        #selectedFileInfoGlobal { font-size: 13px; color: #ccc; margin-top: 10px; word-break: break-all; }
+        #videoPreviewUploadGlobal { max-width: 100%; max-height: 200px; margin-top: 15px; border-radius: 8px; background-color: #000; display: none; object-fit: contain; }
+        #imagePreviewUploadGlobal { max-width:100%; max-height:200px; margin-top:15px; border-radius:8px; display:none; object-fit: contain;}
+        #hiddenFileInputGlobal { display: none; }
+        .upload-form label { display: block; margin-bottom: 5px; font-size: 14px; color: #aaa; }
+        .upload-form input[type="text"], .upload-form textarea { width: calc(100% - 20px); background-color: #0f0f0f; border: 1px solid #303030; color: #fff; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
+        .upload-form textarea { min-height: 80px; resize: vertical; }
+        .upload-modal-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .upload-modal-btn { background-color: #3ea6ff; color: #fff; border: none; padding: 10px 20px; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer; margin-left: 10px; }
+        .upload-modal-btn.secondary { background-color: #303030; } .upload-modal-btn:disabled { background-color: #272727; color: #777; cursor: not-allowed; }
+        #uploadStatusMessage { margin-top: 10px; font-size: 14px; color: #3ea6ff; text-align: center; min-height: 1.2em;}
+        .footer-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #0f0f0f; border-top: 1px solid #303030; display: flex; justify-content: space-around; align-items: center; padding: 5px 0; height: 50px; z-index: 1000; }
+        .nav-button { background: none; border: none; color: #aaa; cursor: pointer; text-align: center; font-size: 10px; padding: 0px 5px 2px 5px; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+        .nav-button.active { color: #fff; } .nav-button .nav-icon { font-size: 22px; margin-bottom: 3px; } .nav-button .nav-text { line-height: 1.1; }
+        .nav-button.create-button .nav-icon { font-size: 28px; border: 2px solid #aaa; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 0; }
+        .nav-button.create-button.active .nav-icon { border-color: #fff; } .nav-button.create-button .nav-text { display: none; }
+
+        /* Ad System CSS */
+        .ad-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); z-index: 3000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .ad-overlay-content { background-color: #111; padding: 10px; border-radius: 8px; width: 90%; max-width: 600px; text-align: center; }
+        #adIframeContainer { width: 100%; margin-bottom: 10px; min-height: 250px; }
+        #adIframeContainer iframe { background-color: #000; }
+        .ad-controls { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; min-height: 30px; }
+        #adCountdown { color: #ccc; font-size: 12px; }
+        #skipAdButton { background-color: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; font-size: 13px; cursor: pointer; display: none; }
+        #skipAdButton:hover { background-color: #444; }
+        .feed-ad-item { width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 20px; background-color: #1a1a1a; border-radius: 4px; }
+        .suggested-ad-item { position: relative; padding: 8px !important; border: 1px solid #303030; border-radius: 8px; }
+        .suggested-ad-item iframe { display: block; }
+        .dismiss-ad-btn { position: absolute; top: 2px; right: 2px; background-color: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; z-index: 1; }
+    </style>
 </head>
 <body>
+    <div class="app-container">
+        <!-- Top Elements -->
+        <header class="status-bar-top" id="statusBar"><span class="time">10:03</span><div class="right-icons"><span>📶</span><span>VoLTE</span></div></header>
+        <header class="app-top-bar" id="appTopBar">
+            <div class="youtube-logo">
+                <span class="logo-emoji">👒</span>
+                <span class="logo-text">straw hat</span>
+            </div>
+            <div class="top-icons">
+                <button class="top-icon-btn" id="castButtonAppTop" aria-label="Cast">🔘</button>
+                <button class="top-icon-btn" id="notificationsButtonAppTop" aria-label="Notifications">🔔</button>
+                <button class="top-icon-btn" id="searchButtonAppTop" aria-label="Search">🔍</button>
+                <button class="top-icon-btn profile-icon" id="profileButtonAppTop" aria-label="Profile"><img src="https://via.placeholder.com/28/777/FFF?Text=U" alt="Profile"></button>
+            </div>
+        </header>
+        <div class="search-overlay" id="searchOverlay">
+            <button class="back-arrow-btn" id="closeSearchOverlayBtn" aria-label="Close search">←</button>
+            <div class="search-input-container">
+                <input type="search" id="searchInputField" placeholder="Search Content...">
+                <button class="clear-search-btn" id="clearSearchInputBtn" aria-label="Clear search text" style="display:none;">×</button>
+            </div>
+            <button class="mic-search-btn" id="micSearchOverlayBtn" aria-label="Search by voice">🎤</button>
+        </div>
 
-  <header class="bazaar-header" id="bazaarHeader">bazaar</header>
-  <div class="bazaar-search-bar" id="bazaarSearchBarEl"> {/* Corrected ID used in JS */}
-    <input type="text" id="searchInput" placeholder="Search Products..." />
-    <button onclick="performSearch()">सरछगग</button>
-  </div>
-  <div class="bazaar-categories" id="bazaarCategoriesEl">
-    <button class="active" onclick="filterBazaarCategory('All', this)">All</button>
-    <button onclick="filterBazaarCategory('#Deals', this)">#Deals</button>
-    <button onclick="filterBazaarCategory('Women', this)">Women</button>
-  </div>
+        <!-- Player Section -->
+        <section class="video-player-section" id="playerSection">
+            <div class="video-player-wrapper" id="videoPlayerWrapper">
+                <video id="mainVideoPlayer" controls preload="metadata" style="display:none;"></video>
+                <div class="image-viewer-wrapper" id="mainImageViewerWrapper" style="display:none;">
+                     <img id="mainImageViewer" alt="Image content"/>
+                </div>
+            </div>
+            <div class="current-video-details-area" id="playerDetailsArea">
+                <div class="current-video-title-actions">
+                    <h2 class="current-video-title" id="playerContentTitle">Content Title</h2>
+                    <button class="delete-video-btn" id="deleteCurrentContentBtn" aria-label="Delete content">🗑️</button>
+                </div>
+                <p class="current-video-meta" id="playerContentMeta">Channel • Views • Time</p>
+            </div>
+        </section>
 
-  <!-- SECTION: Home Page -->
-  <div class="main-section active" id="homeSection">
-    <div class="bazaar-banner"><img src="https://via.placeholder.com/800x250?text=Mega+Offers" alt="Banner" /></div>
-    <div class="bazaar-section-title">Fresh Recommendations</div>
-    <div class="bazaar-products" id="bazaarProductList"></div>
-  </div>
+        <!-- Main Content Area -->
+        <div class="main-content-area" id="mainContentArea">
+            <div id="homePageContent" class="page-content active">
+                <header class="main-header-categories" id="categoryHeaderHome">
+                    <nav class="category-tabs">
+                        <button class="category-tab active" data-category="All">All</button>
+                        <button class="category-tab" data-category="Video">Videos</button>
+                        <button class="category-tab" data-category="Image">Images</button>
+                        <button class="category-tab" data-category="Tech">Tech</button>
+                        <button class="category-tab" data-category="Music">Music</button>
+                    </nav>
+                </header>
+                <main class="video-feed" id="homeVideoFeed"><div class="no-results-message" id="noResultsMessageHome">Loading feed...</div></main>
+            </div>
+            <div id="subscriptionsPageContent" class="page-content">
+                 <h1 style="text-align:center; padding-top: 20px;">Subscriptions</h1>
+            </div>
+            <div id="shortsPageContent" class="page-content"><h1 style="text-align:center; padding-top: 20px;">Shorts Content</h1></div>
+            <div id="youPageContent" class="page-content"><h1 style="text-align:center; padding-top: 20px;">Your Content</h1></div>
+        </div>
 
-  <!-- SECTION: Search Results Page -->
-  <div class="main-section" id="searchResultSection">
-    <h2 id="searchResultTitle" style="text-align:left; font-size:18px; margin-bottom:15px;">Search Results</h2>
-    <div class="bazaar-products" id="searchResultProductList">
-        <!-- Search results will appear here -->
+        <!-- Footer Navigation -->
+        <footer class="footer-nav">
+             <button class="nav-button active" data-page="homePageContent" aria-label="Home"><span class="nav-icon">🏠</span><span class="nav-text">Home</span></button>
+            <button class="nav-button" data-page="shortsPageContent" aria-label="Shorts"><span class="nav-icon">⚡</span><span class="nav-text">Shorts</span></button>
+            <button class="nav-button create-button" id="openUploadModalBtnGlobal" aria-label="Create or upload"><span class="nav-icon">+</span></button>
+            <button class="nav-button" data-page="subscriptionsPageContent" aria-label="Subscriptions"><span class="nav-icon">📺</span><span class="nav-text">Subscriptions</span></button>
+            <button class="nav-button" data-page="youPageContent" aria-label="You"><span class="nav-icon">🌙</span><span class="nav-text">You</span></button>
+        </footer>
     </div>
-    <p id="noSearchResults" style="text-align:center; color:#777; display:none;">No products found matching your search.</p>
-  </div>
 
-
-  <!-- SECTION: Product Detail Page -->
-  <div class="main-section" id="productDetailSection">
-    <div class="product-detail-container" id="productDetailContent"></div>
-  </div>
-
-  <!-- SECTION: Address Form for Order -->
-  <div class="main-section" id="addressFormSection">
-    <div class="form-container">
-        <h2>Delivery Address</h2>
-        <form id="deliveryAddressForm">
-            <label for="fullName">Full Name</label>
-            <input type="text" id="fullName" required placeholder="Enter full name">
-            <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" required placeholder="10-digit mobile number">
-            <label for="pincode">Pincode</label>
-            <input type="text" id="pincode" required placeholder="6-digit Pincode">
-            <label for="houseNo">Flat, House no., Building</label>
-            <input type="text" id="houseNo" required placeholder="House number, etc.">
-            <label for="areaStreet">Area, Street, Sector</label>
-            <input type="text" id="areaStreet" required placeholder="Area or Street">
-            <label for="city">Town/City</label>
-            <input type="text" id="city" required placeholder="Your City">
-            <label for="state">State</label>
-            <input type="text" id="state" required placeholder="Your State">
-            <button type="submit" class="action-btn">Proceed to Payment</button>
-        </form>
-    </div>
-  </div>
-
-  <!-- SECTION: Payment Method Page -->
-  <div class="main-section" id="paymentMethodSection">
-    <div class="form-container">
-        <h2>Choose Payment Method</h2>
-        <button class="action-btn" onclick="selectPaymentMethod('UPI')" style="background-color: #6c757d; margin-bottom:10px;">UPI</button>
-        <button class="action-btn" onclick="selectPaymentMethod('COD')" style="background-color: #6c757d; margin-bottom:10px;">Cash on Delivery</button>
-        <button class="action-btn" onclick="selectPaymentMethod('Card')" style="background-color: #6c757d;">Credit/Debit Card</button>
-    </div>
-  </div>
-
-  <!-- SECTION: Add Product (Admin) -->
-  <div class="main-section" id="addProductSectionShopify">
-    <div class="shopify-product-manager-container">
-      <h2>Add New Product</h2>
-      <label for="shopifyTitle">Product Title</label>
-      <input type="text" id="shopifyTitle" placeholder="e.g. Summer T-Shirt" />
-      <label for="shopifyDescription">Description</label>
-      <textarea id="shopifyDescription" rows="3" placeholder="Short description..."></textarea>
-      <label for="shopifyImageUpload">Upload Image</label>
-      <input type="file" id="shopifyImageUpload" accept="image/*" />
-      <img id="shopifyPreview" class="image-preview" src="#" alt="Product Preview" style="display:none;" />
-      <label for="shopifyPrice">Price (₹)</label>
-      <input type="number" id="shopifyPrice" placeholder="e.g. 499" />
-      <label for="shopifyComparePrice">Compare at Price (₹) (Opt.)</label>
-      <input type="number" id="shopifyComparePrice" placeholder="e.g. 999" />
-      <label for="shopifySize">Size (Optional)</label>
-      <input type="text" id="shopifySize" placeholder="e.g., M, L, XL, Free Size, 250g" />
-      <label for="shopifyInventory">Inventory</label>
-      <input type="number" id="shopifyInventory" placeholder="e.g. 100" />
-      <label for="shopifyStatus">Status</label>
-      <select id="shopifyStatus"><option value="active">Active</option><option value="draft">Draft</option></select>
-      <div class="actions">
-        <button class="save-btn" onclick="saveShopifyProduct()">Save Product</button>
-        <button class="clear-btn" onclick="clearShopifyForm()">Clear Form</button>
-      </div>
-      <div id="shopifyProductOutput"></div>
-    </div>
-  </div>
-
-  <!-- SECTION: Orders (User's Placed Orders) -->
-  <div class="main-section" id="ordersSection">
-    <div class="shopify-product-manager-container">
-        <h2>Your Orders</h2>
-        <div id="orderListContainer">
-            <p class="empty-bag-message" style="padding:20px 0;">You have no orders yet.</p>
+    <!-- Upload Modal -->
+    <div class="upload-modal-overlay" id="uploadModalOverlayGlobal">
+        <div class="upload-modal-content">
+            <div class="upload-modal-header"><h3 id="uploadModalTitleGlobal">Upload File</h3><button class="upload-modal-close-btn" id="closeUploadModalBtnGlobal" aria-label="Close upload modal">×</button></div>
+            <div class="upload-step active" id="uploadStep1Global">
+                <p>Select a video (max 20MB for direct link) or image file.</p>
+                <button class="select-file-button" id="triggerFileInputBtnGlobal">Select File from Device</button>
+                <input type="file" id="hiddenFileInputGlobal" accept="video/*,image/*"><div id="selectedFileInfoGlobal">No file selected.</div>
+                <video id="videoPreviewUploadGlobal" playsinline muted controlslist="nodownload nofullscreen" style="background-color:#000; display:none;"></video>
+                <img id="imagePreviewUploadGlobal" alt="Image Preview" style="display:none;"/>
+                <div id="uploadStatusMessage"></div>
+                <div class="upload-modal-actions">
+                    <button class="upload-modal-btn secondary" id="cancelUploadStep1BtnGlobal">Cancel</button>
+                    <button class="upload-modal-btn" id="nextToUploadStep2BtnGlobal" disabled>Next</button>
+                </div>
+            </div>
+            <div class="upload-step" id="uploadStep2Global">
+                <form class="upload-form" id="uploadDetailsFormGlobal">
+                    <div><label for="uploadFileTitleGlobal">Title</label><input type="text" id="uploadFileTitleGlobal" placeholder="Add a title" required></div>
+                    <div><label for="uploadFileDescriptionGlobal">Description</label><textarea id="uploadFileDescriptionGlobal" placeholder="Add a description"></textarea></div>
+                    <div><label for="uploadFileCategoryGlobal">Category (comma separated, e.g., Tech, Music)</label><input type="text" id="uploadFileCategoryGlobal" placeholder="Tech, Music, Travel"></div>
+                </form>
+                <div class="upload-modal-actions">
+                    <button class="upload-modal-btn secondary" id="backToUploadStep1BtnGlobal">Back</button>
+                    <button class="upload-modal-btn" id="finalUploadFileBtnGlobal">Upload</button>
+                </div>
+            </div>
         </div>
     </div>
-  </div>
-
-  <!-- SECTION: Shopping Bag -->
-  <div class="main-section" id="bagSection">
-    <div class="shopify-product-manager-container">
-        <h2>Your Shopping Bag</h2>
-        <div id="bagItemsContainer"><p class="empty-bag-message">Your bag is empty.</p></div>
-        <div class="bag-summary" id="bagSummaryContainer" style="display:none;">
-            <p>Subtotal: <span id="bagSubtotal">₹0</span></p>
-            <p class="total">Total: <span id="bagTotal">₹0</span></p>
-            <button class="action-btn" onclick="proceedToAddress()" style="margin-top:15px;">Proceed to Buy</button>
+    
+    <!-- Password Prompt Modal for Delete -->
+    <div class="password-prompt-modal-overlay" id="deletePasswordPromptOverlay">
+        <div class="password-prompt-content">
+            <h4>Enter Password to Delete Content</h4>
+            <input type="password" id="deletePasswordInput" placeholder="Password">
+            <div class="password-prompt-actions">
+                <button class="cancel-delete-btn" id="cancelDeleteBtn">Cancel</button>
+                <button class="confirm-delete-btn" id="confirmDeleteVideoBtn">Done</button>
+            </div>
         </div>
     </div>
-  </div>
 
-  <!-- SECTION: Account -->
-  <div class="main-section" id="accountSection">
-     <div class="shopify-product-manager-container">
-        <h2>My Account</h2>
-        <p style="text-align:center; color:#777;">Account features coming soon!</p>
+    <!-- Ad Overlay (for Pre-roll/Mid-roll) -->
+    <div id="adOverlay" class="ad-overlay">
+        <div class="ad-overlay-content">
+            <div id="adIframeContainer">
+            </div>
+            <div class="ad-controls">
+                <span id="adCountdown">Ad will play...</span>
+                <button id="skipAdButton">Skip Ad</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Bottom Navigation -->
-  <div class="bottom-nav">
-    <div class="active-nav" id="nav-home" onclick="showSection('homeSection')"><img src="https://img.icons8.com/material-rounded/24/home.png" alt="Home"/><span>Home</span></div>
-    <div id="nav-add" onclick="showSection('addProductSectionShopify')"><img src="https://img.icons8.com/material-rounded/24/add-circle-outline.png" alt="Add"/><span>Add Product</span></div>
-    <div id="nav-orders" onclick="showSection('ordersSection')"><img src="https://img.icons8.com/material-outlined/24/000000/purchase-order.png" alt="Orders"/><span>Orders</span></div>
-    <div id="nav-bag" onclick="showSection('bagSection')"><img src="https://img.icons8.com/material-rounded/24/shopping-bag.png" alt="Bag"/><span>Bag</span></div>
-    <div id="nav-account" onclick="showSection('accountSection')"><img src="https://img.icons8.com/material-rounded/24/user.png" alt="Account"/><span>Account</span></div>
-  </div>
-
-<script>
-    // --- Data ---
-    const bazaarSampleProducts = [
-      { id: "p1", title: "Stylish Kurti", price: 499, originalPrice: 999, description: "Elegant printed kurti, perfect for casual occasions. Made with comfortable fabric.", image: "https://via.placeholder.com/400x400/FFC0CB/000000?Text=Kurti", category: "Women", size: "M"},
-      { id: "p2", title: "Men's Check Shirt", price: 650, originalPrice: 1200, description: "Comfortable 100% cotton check shirt for men. Ideal for daily wear.", image: "https://via.placeholder.com/400x400/ADD8E6/000000?Text=Shirt", category: "Men", size: "L"},
-      { id: "p3", title: "Wireless Earbuds Pro", price: 1499, originalPrice: 2999, description: "True wireless earbuds with active noise cancellation, long battery life.", image: "https://via.placeholder.com/400x400/90EE90/000000?Text=Earbuds", category: "#Deals"},
-    ];
-    let allBazaarProducts = [...bazaarSampleProducts]; 
-    let shoppingBag = []; 
-    let userOrders = []; 
-    let currentOrderDetails = {}; 
-
-    // --- DOM Elements ---
-    const allMainSections = document.querySelectorAll('.main-section');
-    const bottomNavItems = document.querySelectorAll('.bottom-nav div');
-    const bazaarHeader = document.getElementById('bazaarHeader');
-    const bazaarSearchBarEl = document.getElementById('bazaarSearchBarEl'); // Corrected variable name
-    const bazaarCategoriesEl = document.getElementById('bazaarCategoriesEl'); 
-    const productDetailContentEl = document.getElementById('productDetailContent');
-    const deliveryAddressFormEl = document.getElementById('deliveryAddressForm');
-    const bagItemsContainer = document.getElementById('bagItemsContainer');
-    const bagSummaryContainer = document.getElementById('bagSummaryContainer');
-    const bagSubtotalEl = document.getElementById('bagSubtotal');
-    const bagTotalEl = document.getElementById('bagTotal');
-    const orderListContainer = document.getElementById('orderListContainer');
-    const shopifyImageUpload = document.getElementById('shopifyImageUpload');
-    const shopifyPreview = document.getElementById('shopifyPreview');
-    const shopifyProductOutput = document.getElementById('shopifyProductOutput');
-    const searchInputEl = document.getElementById('searchInput');
-    const searchResultProductListEl = document.getElementById('searchResultProductList');
-    const searchResultTitleEl = document.getElementById('searchResultTitle');
-    const noSearchResultsEl = document.getElementById('noSearchResults');
-
-
-    // --- Navigation ---
-    function showSection(sectionIdToShow, param = null) {
-      allMainSections.forEach(section => section.classList.remove('active'));
-      bottomNavItems.forEach(nav => nav.classList.remove('active-nav'));
-
-      const sectionToShow = document.getElementById(sectionIdToShow);
-      if (sectionToShow) {
-        sectionToShow.classList.add('active');
-        const navItemIdBase = sectionIdToShow.replace('Section', '').replace('Shopify','').replace('Result',''); 
-        const navItem = document.getElementById(`nav-${navItemIdBase}`);
-        if (navItem) navItem.classList.add('active-nav');
-        else if (sectionIdToShow === 'searchResultSection' || sectionIdToShow === 'productDetailSection') { 
-            document.getElementById('nav-home').classList.add('active-nav');
-        }
-
-
-        if (sectionIdToShow === 'productDetailSection' && param) displayProductDetail(param);
-        if (sectionIdToShow === 'bagSection') renderBagItems();
-        if (sectionIdToShow === 'ordersSection') renderUserOrders();
-      }
-      window.scrollTo(0, 0); 
-
-      const isBazaarVisible = sectionIdToShow === 'homeSection' || sectionIdToShow === 'searchResultSection';
-      bazaarHeader.style.display = isBazaarVisible ? 'block' : 'none';
-      bazaarSearchBarEl.style.display = isBazaarVisible ? 'flex' : 'none'; 
-      bazaarCategoriesEl.style.display = sectionIdToShow === 'homeSection' ? 'flex' : 'none'; 
-    }
-
-    // --- Product Display (Home, Search Results, Detail) ---
-    function createBazaarProductCardHTML(product) {
-        let priceHTML = `<span class="price">₹${product.price}</span>`;
-        if (product.originalPrice && product.originalPrice > product.price) {
-            priceHTML += ` <span class="original-price">₹${product.originalPrice}</span>`;
-            const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-            if (discount > 0) priceHTML += ` <span class="discount-tag">${discount}% off</span>`;
-        }
-        let sizeInfoHTML = product.size ? `<div class="size-info">Size: ${product.size}</div>` : '';
-
-        return `
-          <div onclick="showSection('productDetailSection', '${product.id}')"> 
-              <img src="${product.image}" alt="${product.title}" />
-              <div class="title">${product.title}</div>
-          </div>
-          ${sizeInfoHTML}
-          <div class="price-container">${priceHTML}</div>
-          <div class="tags"><span class="tag">${product.category || '#Hot'}</span></div>
-          <button class="action-button" onclick="addToBag('${product.id}')">Add to Bag</button>
-        `;
-    }
-    
-    function displayBazaarProducts(productsToDisplay, containerElement = document.getElementById('bazaarProductList')) {
-        if (!containerElement) return;
-        containerElement.innerHTML = '';
-        if(productsToDisplay.length === 0 && containerElement.id === 'searchResultProductList'){
-            noSearchResultsEl.style.display = 'block';
-        } else if (containerElement.id === 'searchResultProductList') {
-            noSearchResultsEl.style.display = 'none';
-        }
-
-        productsToDisplay.forEach(product => {
-            const card = document.createElement('div');
-            card.className = 'bazaar-product-card';
-            card.innerHTML = createBazaarProductCardHTML(product);
-            containerElement.appendChild(card);
-        });
-    }
-    
-    function displayProductDetail(productId) { 
-        const product = allBazaarProducts.find(p => p.id === productId);
-        if (!product) { productDetailContentEl.innerHTML = "<p>Product not found.</p>"; return; }
-        currentOrderDetails.product = product; 
-
-        let priceHTML = `<span class="current-price">₹${product.price}</span>`;
-        if (product.originalPrice && product.originalPrice > product.price) {
-            priceHTML += `<span class="original-price">₹${product.originalPrice}</span>`;
-        }
-        const sizeDetailHTML = product.size ? `<div class="size-info"><strong>Size:</strong> ${product.size}</div>` : '';
-
-        productDetailContentEl.innerHTML = `
-            <img src="${product.image}" alt="${product.title}" class="main-image">
-            <h2 class="title">${product.title}</h2>
-            <div class="price-section">${priceHTML}</div>
-            ${sizeDetailHTML}
-            <div class="description"><h3>Description</h3><p>${product.description || 'No description.'}</p></div>
-            <button class="action-btn" onclick="showSection('addressFormSection')">Order Now</button>
-            <button class="action-btn" onclick="addToBag('${product.id}'); showSection('bagSection');" style="background-color:#6c757d; margin-top:10px;">Add to Bag & View Bag</button>`;
-    }
-
-    // --- Search Functionality ---
-    function performSearch() {
-        const searchTerm = searchInputEl.value.trim().toLowerCase();
-        if (!searchTerm) {
-            showSection('homeSection');
-            displayBazaarProducts(allBazaarProducts); 
-            return;
-        }
-        const searchResults = allBazaarProducts.filter(product => 
-            product.title.toLowerCase().includes(searchTerm) || 
-            (product.description && product.description.toLowerCase().includes(searchTerm)) ||
-            (product.category && product.category.toLowerCase().includes(searchTerm))
-        );
-        searchResultTitleEl.innerText = `Results for "${searchInputEl.value.trim()}"`;
-        displayBazaarProducts(searchResults, searchResultProductListEl);
-        showSection('searchResultSection');
-    }
-    if(searchInputEl){ 
-        searchInputEl.addEventListener('keypress', function(event){
-            if(event.key === 'Enter'){
-                performSearch();
-            }
-        });
-    }
-
-
-    // --- Order Flow (Address & Payment) ---
-    if (deliveryAddressFormEl) { 
-        deliveryAddressFormEl.addEventListener('submit', function(event) {
-            event.preventDefault();
-            currentOrderDetails.address = {
-                fullName: document.getElementById('fullName').value, phone: document.getElementById('phone').value,
-                pincode: document.getElementById('pincode').value, houseNo: document.getElementById('houseNo').value,
-                areaStreet: document.getElementById('areaStreet').value, city: document.getElementById('city').value,
-                state: document.getElementById('state').value
-            };
-            if(!currentOrderDetails.address.fullName || !currentOrderDetails.address.phone || !currentOrderDetails.address.pincode || !currentOrderDetails.address.houseNo || !currentOrderDetails.address.areaStreet || !currentOrderDetails.address.city || !currentOrderDetails.address.state) {
-                alert("Please fill all required address fields."); return;
-            }
-            showSection('paymentMethodSection');
-            deliveryAddressFormEl.reset();
-        });
-    }
-    function selectPaymentMethod(method) { 
-        currentOrderDetails.paymentMethod = method;
-        let itemsForOrder = []; let orderTotal = 0; let orderType = "";
-
-        if (currentOrderDetails.product) { 
-            itemsForOrder.push({ ...currentOrderDetails.product, quantity: 1 });
-            orderTotal = currentOrderDetails.product.price;
-            orderType = "PD"; 
-        } else if (currentOrderDetails.items && currentOrderDetails.items.length > 0) { 
-            itemsForOrder = currentOrderDetails.items;
-            orderTotal = itemsForOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            orderType = "BAG";
-        } else {
-            alert("Error processing order. No items found."); showSection('homeSection'); return;
-        }
-        
-        const orderId = `ORD-${orderType}-${Date.now().toString().slice(-6)}`; 
-        const orderDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric'});
-        
-        const newOrder = {
-            id: orderId, date: orderDate, items: itemsForOrder, total: orderTotal, 
-            status: "Processed", shippingAddress: currentOrderDetails.address,
-            paymentMethod: currentOrderDetails.paymentMethod
-        };
-        userOrders.unshift(newOrder);
-        alert(`Order ${orderId} placed successfully with ${method}! Total: ₹${orderTotal.toFixed(2)}`);
-        
-        if (orderType === "BAG") { 
-            shoppingBag = []; updateBagIconBadge(); renderBagItems(); 
-        }
-        currentOrderDetails = {}; 
-        showSection('ordersSection');
-    }
-    function proceedToAddress() { 
-        if (shoppingBag.length === 0) { alert("Your bag is empty."); return; }
-        currentOrderDetails.items = JSON.parse(JSON.stringify(shoppingBag)); 
-        currentOrderDetails.product = null; 
-        showSection('addressFormSection');
-    }
-
-    // --- Category Filter ---
-    function filterBazaarCategory(category, element) { 
-        document.querySelectorAll('.bazaar-categories button').forEach(btn => btn.classList.remove('active'));
-        if(element) element.classList.add('active');
-        const filtered = category === 'All' ? allBazaarProducts : 
-            allBazaarProducts.filter(p => p.category === category || (category === "#Deals" && p.originalPrice && p.originalPrice > p.price));
-        displayBazaarProducts(filtered);
-    }
-    
-    // --- Shopify Add Product Form Logic ---
-    if (shopifyImageUpload) { // Ensure element exists before adding listener
-        shopifyImageUpload.addEventListener('change', function () {
-            const file = this.files[0];
-            if (file) {
-            shopifyPreview.style.display = 'block';
-            const reader = new FileReader();
-            reader.onload = function (e) { shopifyPreview.src = e.target.result; }
-            reader.readAsDataURL(file);
-            } else { shopifyPreview.style.display = 'none'; shopifyPreview.src = '#'; }
-        });
-    }
-    function saveShopifyProduct() { 
-      const title = document.getElementById('shopifyTitle').value.trim();
-      const description = document.getElementById('shopifyDescription').value.trim();
-      const price = parseFloat(document.getElementById('shopifyPrice').value);
-      const comparePrice = parseFloat(document.getElementById('shopifyComparePrice').value) || null;
-      const size = document.getElementById('shopifySize').value.trim() || null; 
-      const inventory = parseInt(document.getElementById('shopifyInventory').value);
-      const status = document.getElementById('shopifyStatus').value;
-      const imageFile = shopifyImageUpload.files[0]; 
-
-      if (!title || isNaN(price) || price <= 0 || isNaN(inventory) || !imageFile) {
-        shopifyProductOutput.style.color = 'red';
-        shopifyProductOutput.innerText = "Fill all required fields & upload image.";
-        setTimeout(() => { shopifyProductOutput.innerText = ""; }, 3000);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function(e) {
-          const newProductId = 'p' + (allBazaarProducts.length + 1) + Date.now();
-          const newBazaarProduct = {
-              id: newProductId, title: title, price: price, originalPrice: comparePrice,
-              description: description, image: e.target.result, size: size, 
-              category: status === 'active' ? "New Arrival" : status.charAt(0).toUpperCase() + status.slice(1)
-          };
-          allBazaarProducts.unshift(newBazaarProduct); 
-          shopifyProductOutput.style.color = 'green';
-          shopifyProductOutput.innerText = `Product "${title}" saved! Redirecting...`;
-          setTimeout(() => {
-              clearShopifyForm(); showSection('homeSection');
-              displayBazaarProducts(allBazaarProducts); 
-              shopifyProductOutput.innerText = ""; 
-          }, 1500);
-      }
-      reader.readAsDataURL(imageFile); 
-    }
-    function clearShopifyForm() { 
-      document.getElementById('shopifyTitle').value = "";
-      document.getElementById('shopifyDescription').value = "";
-      document.getElementById('shopifyPrice').value = "";
-      document.getElementById('shopifyComparePrice').value = "";
-      document.getElementById('shopifySize').value = ""; 
-      document.getElementById('shopifyInventory').value = "";
-      document.getElementById('shopifyStatus').value = "active";
-      shopifyImageUpload.value = ""; 
-      shopifyPreview.style.display = "none"; shopifyPreview.src = '#';
-      shopifyProductOutput.innerText = "";
-    }
-
-    // --- Shopping Bag Logic ---
-    function addToBag(productId) { 
-        const productToAdd = allBazaarProducts.find(p => p.id === productId);
-        if (!productToAdd) return;
-        const existingItem = shoppingBag.find(item => item.id === productId);
-        if (existingItem) existingItem.quantity++;
-        else shoppingBag.push({ ...productToAdd, quantity: 1 });
-        alert(`"${productToAdd.title}" added to bag!`);
-        updateBagIconBadge();
-    }
-    function renderBagItems() { 
-        if (shoppingBag.length === 0) {
-            bagItemsContainer.innerHTML = '<p class="empty-bag-message">Your bag is empty.</p>';
-            bagSummaryContainer.style.display = 'none'; return;
-        }
-        bagItemsContainer.innerHTML = ''; 
-        let subtotal = 0;
-        shoppingBag.forEach(item => {
-            const itemTotal = item.price * item.quantity; subtotal += itemTotal;
-            const sizeHTML = item.size ? `<div style="font-size:12px; color:#777;">Size: ${item.size}</div>` : '';
-            bagItemsContainer.innerHTML += `
-                <div class="bag-item" id="bag-item-${item.id}">
-                    <img src="${item.image}" alt="${item.title}">
-                    <div class="bag-item-details">
-                        <div class="title">${item.title}</div>
-                        ${sizeHTML}
-                        <div class="price">₹${item.price} x ${item.quantity} = ₹${itemTotal.toFixed(2)}</div>
-                        <div class="bag-item-quantity">
-                            <button onclick="updateBagQuantity('${item.id}', -1)">-</button>
-                            <span>${item.quantity}</span>
-                            <button onclick="updateBagQuantity('${item.id}', 1)">+</button>
-                        </div>
-                    </div>
-                    <div class="bag-item-remove"><button onclick="removeFromBag('${item.id}')">Remove</button></div>
-                </div>`;
-        });
-        bagSubtotalEl.innerText = `₹${subtotal.toFixed(2)}`;
-        bagTotalEl.innerText = `₹${subtotal.toFixed(2)}`; 
-        bagSummaryContainer.style.display = 'block';
-    }
-    function updateBagQuantity(productId, change) { 
-        const itemInBag = shoppingBag.find(item => item.id === productId);
-        if (itemInBag) {
-            itemInBag.quantity += change;
-            if (itemInBag.quantity <= 0) removeFromBag(productId);
-            else renderBagItems();
-        }
-        updateBagIconBadge();
-    }
-    function removeFromBag(productId) { 
-        shoppingBag = shoppingBag.filter(item => item.id !== productId);
-        renderBagItems(); updateBagIconBadge();
-    }
-    function updateBagIconBadge() { 
-        const bagNavIcon = document.getElementById('nav-bag');
-        const totalItems = shoppingBag.reduce((sum, item) => sum + item.quantity, 0);
-        let badgeSpan = bagNavIcon.querySelector('.bag-badge');
-        if (totalItems > 0) {
-            if (!badgeSpan) {
-                badgeSpan = document.createElement('sup'); badgeSpan.className = 'bag-badge';
-                badgeSpan.style.cssText = 'background-color:#f54d5f; color:white; border-radius:50%; padding:1px 5px; font-size:10px; position:absolute; top:0px; right:10px;';
-                bagNavIcon.style.position = 'relative'; bagNavIcon.appendChild(badgeSpan);
-            }
-            badgeSpan.textContent = totalItems;
-        } else if (badgeSpan) badgeSpan.remove();
-    }
-
-    // --- Orders Logic ---
-    function renderUserOrders() { 
-        if (userOrders.length === 0) {
-            orderListContainer.innerHTML = '<p class="empty-bag-message" style="padding:20px 0;">You have no orders yet.</p>';
-            return;
-        }
-        orderListContainer.innerHTML = '';
-        userOrders.forEach(order => {
-            let itemsHTML = '';
-            order.items.forEach(item => {
-                const itemSizeHTML = item.size ? ` <small>(Size: ${item.size})</small>` : '';
-                itemsHTML += `
-                    <div class="order-product">
-                        <img src="${item.image}" alt="${item.title}">
-                        <div class="name">${item.title}${itemSizeHTML}</div>
-                        <div class="qty-price">Qty: ${item.quantity}<br>₹${(item.price * item.quantity).toFixed(2)}</div>
-                    </div>`;
-            });
-
-            orderListContainer.innerHTML += `
-                <div class="order-list-item">
-                    <div class="order-id">Order ID: ${order.id}</div>
-                    <div class="order-date">Placed on: ${order.date}</div>
-                    <p style="margin-top:10px; margin-bottom:5px; font-size:13px; color:#555;"><strong>Shipped to:</strong> ${order.shippingAddress?.fullName || 'N/A'}, ${order.shippingAddress?.houseNo || ''}, ${order.shippingAddress?.city || ''}</p>
-                    <p style="margin-bottom:10px; font-size:13px; color:#555;"><strong>Payment:</strong> ${order.paymentMethod || 'N/A'}</p>
-                    ${itemsHTML}
-                    <div class="order-total">Total: ₹${order.total.toFixed(2)}</div>
-                    <div class="order-status ${order.status.toLowerCase()}">${order.status}</div>
-                </div>`;
-        });
-    }
-
-    // --- Initial Load ---
-    window.onload = function() { 
-      displayBazaarProducts(allBazaarProducts); 
-      showSection('homeSection'); 
-      const firstCategoryButton = document.querySelector('.bazaar-categories button');
-      if(firstCategoryButton) firstCategoryButton.classList.add('active');
-      updateBagIconBadge();
-    };
-  </script>
 </body>
 </html>
+
